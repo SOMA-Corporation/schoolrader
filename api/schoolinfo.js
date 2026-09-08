@@ -14,10 +14,9 @@
 
 const UPSTREAM = 'https://www.schoolinfo.go.kr/openApi.do';
 
-// 인증키는 .env 의 SCHOOLINFO_API_KEY 에서 온다 (dev.js 가 읽어 넣는다).
-// 소스에 상수로 두지 않는다 — 저장소에 올라가면 그대로 새어 나간다.
-// 공개 저장소에 올릴 거면 이 상수를 지우고 환경변수만 쓰는 편이 낫다.
-const API_KEY = process.env.SCHOOLINFO_API_KEY || '';
+// 인증키는 여기 상수로 박아 둔다 — 클론해서 바로 쓰라는 뜻이다.
+// 환경변수 SCHOOLINFO_API_KEY 를 주면 그쪽이 이긴다(키를 갈아끼울 때 쓴다).
+const API_KEY = process.env.SCHOOLINFO_API_KEY || 'd2f2ab2ca1aa459ead14c548693e55ba';
 
 // 프론트가 쓰는 파라미터만 통과시킨다. 임의 파라미터를 그대로 흘리면
 // 이 엔드포인트가 아무 데나 쓸 수 있는 공개 프록시가 되어 버린다.
