@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>School Radar — 학교분석보고서 데이터 추출기</title>
+<meta name="description" content="학교 이름만 입력하면 학교알리미 공시데이터를 분석보고서용 표로 바로 뽑아 줍니다." />
+<meta name="theme-color" content="#0e1012" />
+<!-- 파비콘 — 히어로의 레이더 마크를 그대로 축소한 것. SVG 를 못 받는 브라우저용 PNG 를 같이 둔다 -->
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="hero">
+  <div class="hero-in">
+    <div>
+      <h1 class="brand">School Radar</h1>
+      <h2>학교분석보고서 데이터 추출기</h2>
+      <div class="rule"></div>
+      <p class="lead">학교 데이터가<br><b>원장님의 전략</b>이 됩니다.</p>
+      <p class="note">검색에서 보고서까지, 한 번의 흐름으로.</p>
+
+      <!-- 접속 코드 — 통과해야 아래 검색·추출 도구가 열린다 -->
+      <form class="gate" id="gate" autocomplete="off">
+        <label for="code" id="gateLabel">접속 코드</label>
+        <div class="row">
+          <input id="code" inputmode="numeric" maxlength="12" placeholder="코드 입력"
+                 autocomplete="off" aria-describedby="gateMsg" />
+          <button type="submit">들어가기</button>
+        </div>
+        <p class="msg" id="gateMsg" role="status"></p>
+      </form>
+    </div>
+
+    <!-- 레이더 — 훑는 빔이 지나갈 때 학교 이름이 뜨고, 누르면 그 학교로 바로 조회된다 -->
+    <div class="radar" id="radar">
+      <svg viewBox="0 0 400 400" aria-hidden="true">
+        <circle class="glow" cx="200" cy="200" r="188" />
+        <circle class="grid" cx="200" cy="200" r="188" />
+        <circle class="grid" cx="200" cy="200" r="140" />
+        <circle class="grid thin" cx="200" cy="200" r="92" />
+        <circle class="grid thin" cx="200" cy="200" r="44" />
+        <line class="grid thin" x1="200" y1="12" x2="200" y2="388" />
+        <line class="grid thin" x1="12" y1="200" x2="388" y2="200" />
+        <line class="grid thin" x1="67" y1="67" x2="333" y2="333" />
+        <line class="grid thin" x1="333" y1="67" x2="67" y2="333" />
+      </svg>
+      <div class="sweep" aria-hidden="true"></div>
+      <div class="ping" aria-hidden="true"></div>
+      <div class="ping b" aria-hidden="true"></div>
+      <div class="blips" id="blips" role="group" aria-label="레이더에 잡힌 학교 — 누르면 조회할 학교로 지정됩니다"></div>
+    </div>
+  </div>
+</header>
+
+<script src="gate.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const gateSay = (t, ok) => { const m = $('#gateMsg'); m.textContent = t; m.classList.toggle('ok', !!ok); };
+
+/* 레이더에서 고른 학교 — 코드를 통과한 뒤 도구 페이지로 같이 넘긴다.
+   전에 왔던 브라우저라고 그냥 통과시키지 않는다: 들어가려면 매번 코드를 넣어야 한다. */
+let wanted = null;
+
+$('#gate').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = $('#code').value.trim();
+  if (v !== CODE) { gateSay(v ? '코드가 맞지 않습니다.' : '코드를 입력해 주세요.'); $('#code').select(); return; }
+  pass();                       // 도구 페이지가 직접 열렸을 때 확인할 표식
+  location.href = wanted ? APP_URL + '?school=' + encodeURIComponent(wanted) : APP_URL;
+});
+
+/* ═════════ 히어로 레이더 ═════════
+   밝기와 빔 회전은 전부 CSS 애니메이션이다. JS 가 하는 일은 두 가지뿐:
+     1) 시작할 때 점을 배치하고 각도에 맞는 지연(--d)을 박는다
+     2) 한 바퀴가 끝날 때마다(animationiteration, 4초에 한 번) 점이 꺼져 있는 사이에
+        거리와 학교 이름을 새로 뽑는다 — 매 프레임 도는 코드는 없다.
+
+   각도는 고정이다. 각도를 바꾸면 CSS 지연과 빔 위치가 어긋나 "빔이 지나가지도 않았는데
+   켜지는" 그림이 된다. 거리만 바꿔도 빔은 그 각도의 모든 거리를 동시에 지나므로 어긋나지 않는다. */
+(function radar(){
+  const stage = document.getElementById('blips');
+  if (!stage) return;
+
+  /* 전부 schools.json 에 있는 실제 학교 — 눌렀을 때 바로 조회된다 */
+  const POOL = [
+    ['휘문고', '휘문고등학교'], ['단대부고', '단국대학교사범대학부속고등학교'],
+    ['중동고', '중동고등학교'], ['경기고', '경기고등학교'],
+    ['세화고', '세화고등학교'], ['상문고', '상문고등학교'],
+    ['서울고', '서울고등학교'], ['현대고', '현대고등학교'],
+    ['대원외고', '대원외국어고등학교'], ['숙명여고', '숙명여자고등학교'],
+    ['한영외고', '한영외국어고등학교'], ['인덕원고', '인덕원고등학교'],
+    ['영동고', '영동고등학교'], ['반포고', '반포고등학교'],
+  ];
+  const SLOTS = 8;
+  const PERIOD = 4;                 /* 초 — .sweep / .blip 키프레임과 같은 값 */
+  const SKIP_RATE = 0.28;           /* 한 바퀴 쉬어가는 비율 — 매번 다 뜨면 기계처럼 보인다 */
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = () => POOL[Math.floor(Math.random() * POOL.length)];
+
+  const blips = [];
+  for (let i = 0; i < SLOTS; i++) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'blip';
+    el.innerHTML = '<span class="bub"></span><span class="dot"></span>';
+
+    /* 각도는 고정 — 슬롯 구간 안에서 한 번만 흔들어 기계적인 배열을 피한다 */
+    const ang = ((360 / SLOTS) * i + rnd(-14, 14) + 360) % 360;
+    el.style.setProperty('--d', (ang / 360 * PERIOD - PERIOD).toFixed(3) + 's');
+    stage.appendChild(el);
+
+    const b = { el, ang, bub: el.querySelector('.bub') };
+    reseat(b);
+    el.addEventListener('animationiteration', () => reseat(b));
+    blips.push(b);
+  }
+
+  /* 점이 꺼져 있는 사이에 거리와 이름을 새로 뽑는다 */
+  function reseat(b){
+    if (Math.random() < SKIP_RATE) {           // 이번 바퀴는 쉬어간다
+      b.el.style.visibility = 'hidden';
+      return;
+    }
+    b.el.style.visibility = 'visible';
+    const [short, full] = pick();
+    b.bub.textContent = short;
+    b.el.dataset.school = full;
+    b.el.setAttribute('aria-label', full + ' 조회');
+    b.el.title = full;
+    const r = rnd(0.30, 0.80) * 0.46;          /* 0.46 = 원 안쪽 여백 */
+    const rad = (b.ang - 90) * Math.PI / 180;  /* 화면 좌표는 12시가 -90° */
+    b.el.style.setProperty('--x', (50 + Math.cos(rad) * r * 100).toFixed(2) + '%');
+    b.el.style.setProperty('--y', (50 + Math.sin(rad) * r * 100).toFixed(2) + '%');
+  }
+
+  /* 누르면 조회할 학교로 '지정'만 한다 — 들어가는 건 코드를 넣은 뒤다 */
+  stage.addEventListener('click', function (e) {
+    const el = e.target.closest('.blip');
+    if (!el || !el.dataset.school) return;
+    wanted = el.dataset.school;
+    $('#gateLabel').textContent = '접속 코드 — ' + wanted;
+    gateSay('코드를 넣으면 이 학교로 바로 갑니다.', true);
+    $('#code').focus();
+  });
+})();
+</script>
+</body>
+</html>

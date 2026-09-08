@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/schoolinfo.js": {
+      "maxDuration": 20
+    },
+    "api/gongsi.js": {
+      "maxDuration": 60
+    }
+  }
+}

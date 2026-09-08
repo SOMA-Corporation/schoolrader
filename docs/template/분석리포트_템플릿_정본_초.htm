@@ -1,0 +1,567 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>
+@page{size:A4; margin:0;}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Noto Sans CJK KR',sans-serif; color:#16181F; background:#FCFCFB; font-size:8pt; line-height:1.55;}
+.mono{font-family:'DejaVu Sans Mono',monospace;}
+.pg{width:210mm; min-height:296.9mm; padding:34pt 36pt; page-break-after:always; background:#FCFCFB;}
+.pg:last-child{page-break-after:auto;}
+/* cover */
+.topband{background:#7C2230; color:#fff; display:flex; justify-content:space-between; padding:5pt 10pt; font-size:7pt; font-weight:700; letter-spacing:.8pt;}
+.caps{margin-top:16pt; font-size:8pt; font-weight:700; letter-spacing:3.5pt; color:#7C2230;}
+h1{font-size:24pt; font-weight:900; margin-top:6pt; padding-bottom:9pt; border-bottom:2pt solid #16181F; letter-spacing:.5pt;}
+table.meta{width:100%; border-collapse:collapse; margin-top:13pt;}
+table.meta td{border:.6pt solid #C9C6BE; padding:6pt 8pt; font-size:8pt;}
+table.meta td.k{width:13.5%; background:#E4E2DC; font-weight:700; text-align:center; font-size:7.5pt;}
+table.meta td.v{width:36.5%;}
+.tocbox{border:.8pt solid #16181F; margin-top:18pt; padding:20pt 26pt;}
+.toct{text-align:center; font-size:14pt; font-weight:900; letter-spacing:16pt; text-indent:16pt; margin-bottom:15pt;}
+.trow{display:flex; align-items:baseline; margin:5pt 0; font-size:9pt;}
+.trow .no{width:26pt; font-weight:900; color:#7C2230;}
+.trow .t{font-weight:700;}
+.trow .dots{flex:1; border-bottom:1pt dotted #9a968c; margin:0 6pt; align-self:flex-end; margin-bottom:2.5pt;}
+.trow .p{width:16pt; text-align:right; font-weight:700;}
+.trow.sub{padding-left:26pt; font-size:7.5pt; color:#6b675e; margin:1.5pt 0;}
+.trow.sub .t{font-weight:400;}
+/* section header */
+.sh{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:3pt;}
+.sh .num{color:#7C2230; font-weight:900; font-size:14pt; margin-right:7pt;}
+.sh .tt{font-weight:900; font-size:14pt;}
+.sh .tt .light{font-weight:700; color:#4a463e; font-size:9pt; margin-left:6pt;}
+.sh .eng{font-size:7pt; letter-spacing:2.2pt; color:#8a8578; font-family:'DejaVu Sans Mono',monospace; padding-bottom:2.5pt;}
+.shrule{border-bottom:1.2pt solid #16181F; margin-bottom:6pt;}
+.lead{font-size:7.5pt; color:#5c584f; margin-bottom:9pt;}
+/* sub headings — 01-1. style */
+.sub1{font-size:10pt; font-weight:900; margin:11pt 0 5pt;}
+.sub1 .sn{color:#7C2230; margin-right:4pt;}
+.sub1 .tag{font-size:7pt; font-weight:400; color:#8a8578; margin-left:6pt;}
+/* tables */
+table.tb{width:100%; border-collapse:collapse; table-layout:fixed;}
+.tb th{border-top:1.4pt solid #16181F; border-bottom:.9pt solid #16181F; border-left:.6pt solid #C9C6BE; border-right:.6pt solid #C9C6BE; padding:4pt 5pt; font-size:7.5pt; font-weight:700; text-align:left; background:#FCFCFB;}
+.tb td{border:.6pt solid #C9C6BE; padding:4pt 5.5pt; font-size:7.5pt; vertical-align:middle;}
+.tb tr:last-child td{border-bottom:.9pt solid #16181F;}
+.tb td.k{background:#E4E2DC; font-weight:700;}
+.tb tr.hl td{background:#F6EDEE;}
+.tb td.c, .tb th.c{text-align:center;}
+.b{font-weight:700;} .g{color:#8a8578;} .red{color:#A93226; font-weight:700;} .blue{color:#1D4E89; font-weight:700;} .amber{color:#A8720A; font-weight:700;} .maroon{color:#7C2230; font-weight:700;}
+/* bullets */
+ul.dot{list-style:none; margin:3pt 0;}
+ul.dot li{position:relative; padding-left:11pt; margin:4.5pt 0; font-size:8pt;}
+ul.dot li::before{content:"●"; position:absolute; left:0; top:0; font-size:4.5pt; color:#7C2230; line-height:2.9;}
+/* 분석 노트 */
+.nl{font-size:8pt; font-weight:900; color:#7C2230; margin:10pt 0 4pt;}
+.nl::before{content:"▸ "; font-size:7pt;}
+.nb{background:#FBF7F6; border-left:2.6pt solid #7C2230; padding:7pt 10pt; font-size:7.8pt; line-height:1.65; color:#2b2823;}
+/* achievement bar tables */
+table.ach{width:100%; border-collapse:collapse; table-layout:fixed;}
+.ach th{border-top:1.4pt solid #16181F; border-bottom:.9pt solid #16181F; border-left:.6pt solid #C9C6BE; border-right:.6pt solid #C9C6BE; padding:3.5pt 4pt; font-size:7pt; font-weight:700; text-align:left;}
+.ach td{border:.6pt solid #C9C6BE; padding:2.4pt 4pt; font-size:7pt; vertical-align:middle;}
+.ach tr:last-child td{border-bottom:.9pt solid #16181F;}
+.ach td.grp{background:#E4E2DC; font-weight:700; text-align:center; font-size:7pt;}
+.ach td.subj{font-weight:700; font-size:7.3pt;}
+.ach td.sem{text-align:center; color:#4a463e; font-size:6.8pt;}
+.yline{display:flex; align-items:center; margin:0.55pt 0;}
+.yline .yr{width:11pt; font-family:'DejaVu Sans Mono',monospace; font-size:5.8pt; color:#8a8578;}
+.yline .bar{flex:1; height:6.4pt; display:flex; background:#F1EFE9;}
+.yline .bar i{display:block; height:100%;}
+.sA{background:#2C4A73;} .sB{background:#8AA3C4;} .sC{background:#D9DDE3;} .sD{background:#DBA05F;} .sE{background:#A93226;}
+.yline .ann{width:64pt; font-family:'DejaVu Sans Mono',monospace; font-size:5.8pt; color:#5c584f; padding-left:4pt; white-space:nowrap;}
+.caption{font-weight:900; font-size:8.5pt; margin:7pt 0 4pt;}
+.fnote{font-size:6.6pt; color:#8a8578; margin-top:4pt; line-height:1.5;}
+/* 05-4 numeric tables */
+table.det{width:100%; border-collapse:collapse; table-layout:fixed;}
+.det th{border-top:1.4pt solid #16181F; border-bottom:.9pt solid #16181F; border-left:.6pt solid #C9C6BE; border-right:.6pt solid #C9C6BE; padding:2.8pt 3pt; font-size:6.8pt; font-weight:700; text-align:center;}
+.det td{border:.6pt solid #C9C6BE; padding:2.2pt 3.5pt; font-size:6.8pt; vertical-align:middle;}
+.det tr:last-child td{border-bottom:.9pt solid #16181F;}
+.det td.grp{background:#E4E2DC; font-weight:700; text-align:center;}
+.det td.subj{font-weight:700; font-size:7pt;}
+.det td.n{text-align:center; font-family:'DejaVu Sans Mono',monospace; font-size:6.4pt;}
+.det .mbar{height:5.8pt; display:flex; background:#F1EFE9;}
+.det .mbar i{display:block; height:100%;}
+/* stats grid (06/07) */
+.stats{display:flex; gap:5pt; margin:7pt 0 10pt;}
+.st{flex:1; border:.6pt solid #C9C6BE; border-top:2pt solid #7C2230; background:#fff; padding:5pt 7pt;}
+.st .k{font-size:6.6pt; color:#8a8578; font-weight:700;}
+.st .v{font-size:11pt; font-weight:900; margin-top:1pt;}
+.st .v small{font-size:6.6pt; font-weight:400; color:#8a8578;}
+tr.selband td{background:#7C2230; color:#fff; font-weight:700; border-color:#5e1a25; padding:3.2pt 6pt; font-size:7.3pt;}
+tr.sumrow td{background:#F5F4F0; font-weight:700; border-top:1pt solid #16181F;}
+.fx{page-break-inside:avoid;}
+.tight td,.tight th{padding:2.6pt 4pt !important; font-size:7.1pt !important;}
+</style>
+</head><body>
+
+<div class="pg" style="padding-top:26pt;">
+<div class="topband"><span class="mono">SCHOOL RESEARCH · 입시학원 내부용</span><span class="mono" style="font-weight:400;">공시연도 {{공시연도}} · 작성 {{작성일}}</span></div>
+<div class="caps mono">ELEMENTARY SCHOOL ANALYSIS — {{지역}}</div>
+<h1>{{학교명}} 학교분석 리포트</h1>
+<!-- ■ 채우기 — table.meta — OpenAPI(apiType 0·09·62·63)에서 그대로 옮긴다. 행을 늘리거나 줄이지 말 것 -->
+<table class="meta">
+<tr><td class="k">학교명</td><td class="v">{{학교명}}</td><td class="k">설립 구분</td><td class="v">{{설립}} · {{남녀공학}} · {{유형}}</td></tr>
+<tr><td class="k">주소지</td><td class="v">{{주소}}</td><td class="k">개교일</td><td class="v">{{개교일}}</td></tr>
+<tr><td class="k">TEL</td><td class="v">{{전화}}</td><td class="k">홈페이지</td><td class="v">{{홈페이지}}</td></tr>
+<tr><td class="k">총 재학생</td><td class="v">{{총재학생}}명</td><td class="k">학급 편성</td><td class="v">{{총학급}}학급 · 학급당 {{학급당}}명</td></tr>
+<tr><td class="k">학년별 인원</td><td class="v" colspan="3">{{학년별인원}}</td></tr>
+<tr><td class="k">교원</td><td class="v">{{교원수}}명 <small>({{교원기준}})</small></td><td class="k">교원 1인당 학생</td><td class="v">{{교원1인당}}명</td></tr>
+</table>
+<div class="tocbox">
+<div class="toct">목차 <span class="g">초등학교 공시 기준</span></div>
+<div class="trow"><span class="no">01</span><span class="t">학교 규모와 학년 구조</span><span class="dots"></span><span class="p">2</span></div>
+<div class="trow"><span class="no">02</span><span class="t">유입과 유출 — 학군 수요</span><span class="dots"></span><span class="p">4</span></div>
+<div class="trow"><span class="no">03</span><span class="t">입학생 구조</span><span class="dots"></span><span class="p">7</span></div>
+<div class="trow"><span class="no">04</span><span class="t">평가 체계와 교과평가계획</span><span class="dots"></span><span class="p">8</span></div>
+<div class="trow"><span class="no">05</span><span class="t">교육과정과 수업</span><span class="dots"></span><span class="p">11</span></div>
+<div class="trow"><span class="no">06</span><span class="t">체력 등급 분포</span><span class="dots"></span><span class="p">13</span></div>
+<div class="trow"><span class="no">07</span><span class="t">방과후학교와 돌봄</span><span class="dots"></span><span class="p">15</span></div>
+<div class="trow"><span class="no">08</span><span class="t">동아리 활동</span><span class="dots"></span><span class="p">17</span></div>
+<div class="trow"><span class="no">09</span><span class="t">도서관 · 상담 · 급식</span><span class="dots"></span><span class="p">18</span></div>
+<div class="trow"><span class="no">10</span><span class="t">교원과 시설</span><span class="dots"></span><span class="p">19</span></div>
+<div class="trow"><span class="no">11</span><span class="t">안전과 학교폭력</span><span class="dots"></span><span class="p">20</span></div>
+</div>
+<p class="fnote">출처 — 학교알리미 정보공시({{공시연도}}) · 교육기본통계(KESS, 매년 4/1 기준). 산출치·추정치는 각 표 각주에 방법을 밝혔다. 초등학교는 교과별 학업성취 공시가 없어 교과 성취도·석차를 다루지 않는다. 진학 중학교도 공개 자료가 없어 다루지 않는다. 대외 배포 시 원자료 확인 요망.</p>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">01</span><span class="tt">학교 규모와 학년 구조</span></div><div class="eng">SCHOOL SIZE</div></div><div class="shrule"></div>
+<p class="lead">학년별 인원과 학급 편성. 어느 학년이 두꺼운지가 곧 학년별 반 편성 규모다.</p>
+<div class="sub1"><span class="sn">01-1.</span>학년별 학생수 · 학급수 · 학급당 인원 <span class="tag">{{연도범위}} 4개년 · 각 학년도 4/1 기준</span></div>
+<!-- ■ 채우기 — KESS 4개년(.kess-cache) + apiType 09·62. 학년은 1~6학년 + 특수학급 -->
+<table class="tb">
+<colgroup><col style="width:10%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:14%"><col style="width:12%"><col style="width:16%"></colgroup>
+<thead><tr><th>학년</th><th>{{연도1}}</th><th>{{연도2}}</th><th>{{연도3}}</th><th>{{연도4}}</th><th>학급수</th><th>학급당</th><th>증감 판정</th></tr></thead>
+<tbody>
+<tr><td class="k">1학년</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c b">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="g">{{}}</td></tr>
+<!-- ■ 채우기 — 2~6학년 같은 형식으로. 특수학급이 있으면 마지막 줄에 -->
+<tr class="hl"><td class="k">총계</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c b">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="g">{{}}</td></tr>
+</tbody>
+</table>
+<p class="fnote">KESS 는 조사기준일이 4/1 이고 학교알리미 3-나 의 「전년도 4월 1일 학생수」와 같은 값이다. 두 출처를 섞을 때 연도 라벨을 학년도로 통일할 것.</p>
+<div class="sub1"><span class="sn">01-2.</span>코호트 이동 <span class="tag">같은 학년이 한 해 올라가며 몇 명 늘었나</span></div>
+<!-- ■ 채우기 — 전년도 N학년 → 올해 N+1학년 증감. 초등은 올라갈수록 늘어나는 것이 정상(전입) -->
+<table class="tb">
+<colgroup><col style="width:16%"><col style="width:14%"><col style="width:14%"><col style="width:12%"><col style="width:44%"></colgroup>
+<thead><tr><th>코호트</th><th>전년 인원</th><th>올해 인원</th><th>증감</th><th>해석</th></tr></thead>
+<tbody>
+<tr><td class="k">{{}}학년 → {{}}학년</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c b">{{}}</td><td class="g">{{}}</td></tr>
+<!-- ■ 채우기 — 학년 수만큼 반복 -->
+</tbody>
+</table>
+<div class="nl">분석 노트</div>
+<div class="nb">{{어느 학년이 두꺼운가 · 학급당 인원이 구 평균 대비 어떤가 · 신입생 규모가 몇 년째 어떻게 변했는가 · 학년별 반을 몇 개로 열 것인가}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">01</span><span class="tt">학교 규모와 학년 구조 <span class="light">(계속)</span></span></div><div class="eng">SCHOOL SIZE</div></div><div class="shrule"></div>
+<div class="sub1"><span class="sn">01-3.</span>반별 편성 전수 <span class="tag">{{공시연도}} · 학년별·학급별 학생수(3-가-3)</span></div>
+<!-- ■ 채우기 — 공시 3-가-3 표 그대로. 반이 많으면 학년별로 묶어 두 단으로 -->
+<table class="det"><thead><tr><th style="width:10%">학년</th><th style="width:12%">반</th><th style="width:10%">남</th><th style="width:10%">여</th><th style="width:10%">계</th><th style="width:48%">학년 내 분포</th></tr></thead><tbody>
+<tr><td class="grp" rowspan="{{반수}}">{{}}학년</td><td class="subj">{{반이름}}</td><td class="n">{{}}</td><td class="n">{{}}</td><td class="n b">{{}}</td><td><div class="mbar"><i class="sA" style="width:{{}}%"></i><i class="sB" style="width:{{}}%"></i></div></td></tr>
+<!-- ■ 채우기 — 학년×반 전수 -->
+</tbody></table>
+<p class="fnote">반 이름은 공시 표기(1-01(단식) 등)를 그대로 쓴다.</p>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">02</span><span class="tt">유입과 유출 — 학군 수요</span></div><div class="eng">STUDENT INFLOW</div></div><div class="shrule"></div>
+<p class="lead">이 리포트의 무게중심. 고교 리포트에서 성취도 분포가 하던 자리다. 신규 상담이 언제 들어오는지, 학군 수요가 늘고 있는지 꺾이는지에 답한다.</p>
+<p class="fnote" style="margin-bottom:4pt;">범례 <i class="sA" style="display:inline-block;width:7pt;height:5pt;"></i> 전입 <i class="sB" style="display:inline-block;width:7pt;height:5pt;"></i> 재적 <i class="sC" style="display:inline-block;width:7pt;height:5pt;"></i>  <i class="sD" style="display:inline-block;width:7pt;height:5pt;"></i>  <i class="sE" style="display:inline-block;width:7pt;height:5pt;"></i> 전출</p>
+<div class="sub1"><span class="sn">02-1.</span>학년별 전입·전출 3개년 <span class="tag">{{연도범위}} · 학교알리미 3-나</span></div>
+<!-- ■ 채우기 — act=move 3개년. 막대는 전입/전출 비중 — sA=전입, sE=전출 -->
+<table class="ach"><thead><tr><th class="c" style="width:7%">분류</th><th style="width:14%">구분</th><th class="c" style="width:6.5%">성별</th><th style="width:53.5%">3개년 분포 (위→아래 {{연도1}} · {{연도2}} · {{연도3}})</th><th style="width:19%">판정·분석</th></tr></thead><tbody>
+<tr><td class="grp" rowspan="{{n}}">저학년</td><td class="subj">{{}}학년</td><td class="sem">계</td><td><div class="yline"><span class="yr">{{yy}}</span><div class="bar"><i class="sA" style="width:{{}}%"></i><i class="sB" style="width:{{}}%"></i><i class="sC" style="width:0%"></i><i class="sD" style="width:0%"></i><i class="sE" style="width:{{}}%"></i></div><span class="ann">전입 {{}} · 전출 {{}}</span></div><!-- ■ 채우기 — 나머지 두 해 --></td><td rowspan="{{n}}" style="font-size:6.8pt;">{{판정}}</td></tr>
+<!-- ■ 채우기 — 1~6학년 전수 — 저학년(1~3) · 고학년(4~6) 으로 묶는다 -->
+</tbody></table>
+<p class="fnote">전입·전출 인원은 공시 원문 그대로. 비율은 산출치 — 전입 ÷ 그 학년도 4/1 학생수. 분모를 표에 함께 적는다.</p>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">02</span><span class="tt">유입과 유출 — 학군 수요 <span class="light">(계속)</span></span></div><div class="eng">STUDENT INFLOW</div></div><div class="shrule"></div>
+<div class="sub1"><span class="sn">02-2.</span>지역 대비 전입률 · 전출률 · 학업중단율 <span class="tag">3개년 · 구/시도/전국 비교</span></div>
+<!-- ■ 채우기 — 공시 3-나 의 지역비교행. 학교 비율은 산출치임을 각주에 -->
+<table class="tb">
+<colgroup><col style="width:14%"><col style="width:11%"><col style="width:11%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:12%"></colgroup>
+<thead><tr><th>구분</th><th>전입</th><th>전출</th><th>전입률</th><th>{{구}}</th><th>{{시도}}</th><th>전국</th><th>격차</th></tr></thead>
+<tbody>
+<tr class="hl"><td class="k">{{연도1}}학년도</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c b">{{}}%</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td></tr>
+<!-- ■ 채우기 — 3개년 -->
+</tbody>
+</table>
+<p class="fnote">전입률 = 전입 ÷ 그 학년도 4/1 학생수(산출치). 공시는 학교 비율을 직접 주지 않고 지역 비율만 준다.</p>
+<div class="sub1"><span class="sn">02-3.</span>학업중단 <span class="tag">유예 · 면제 · 정원외 학적관리</span></div>
+<table class="tb">
+<colgroup><col style="width:16%"><col style="width:14%"><col style="width:14%"><col style="width:18%"><col style="width:14%"><col style="width:24%"></colgroup>
+<thead><tr><th>학년도</th><th>유예</th><th>면제</th><th>정원외</th><th>학업중단율</th><th>{{구}} 평균</th></tr></thead>
+<tbody>
+<tr><td class="k">{{}}학년도</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c b">{{}}%</td><td class="c">{{}}%</td></tr>
+<!-- ■ 채우기 — 3개년 -->
+</tbody>
+</table>
+<div class="nl">분석 노트</div>
+<div class="nb">{{유입이 늘고 있는가 꺾이는가 · 구 평균과의 격차가 벌어지는가 좁아지는가 · 이 학교 학군의 수요 압력}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">02</span><span class="tt">유입과 유출 — 학군 수요 <span class="light">(계속)</span></span></div><div class="eng">STUDENT INFLOW</div></div><div class="shrule"></div>
+<div class="sub1"><span class="sn">02-4.</span>유입 타이밍 — 학년별 순전입 <span class="tag">언제 신규 상담이 들어오는가</span></div>
+<!-- ■ 채우기 — 학년별 (전입 − 전출). 저학년 합 vs 고학년 합을 반드시 대비시킬 것 -->
+<table class="det"><thead><tr><th style="width:10%">학년</th><th style="width:12%">전입</th><th style="width:12%">전출</th><th style="width:12%">순전입</th><th style="width:34%">학년 내 비중</th><th style="width:20%">상담 시점</th></tr></thead><tbody>
+<tr><td class="grp">{{}}학년</td><td class="n">{{}}</td><td class="n">{{}}</td><td class="n b">{{}}</td><td><div class="mbar"><i class="sA" style="width:{{}}%"></i></div></td><td class="g">{{}}</td></tr>
+<!-- ■ 채우기 — 1~6학년 + 저학년 소계 · 고학년 소계 행 -->
+</tbody></table>
+<div class="stats">
+<div class="st"><div class="k">저학년(1~3) 순전입</div><div class="v">{{}}명</div></div>
+<div class="st"><div class="k">고학년(4~6) 순전입</div><div class="v">{{}}명</div></div>
+<div class="st"><div class="k">최다 유입 학년</div><div class="v">{{}}학년</div></div>
+</div>
+<div class="nl">분석 노트</div>
+<div class="nb">{{유입이 어느 학년에 몰리는가 · 어느 학년에 마케팅을 걸 것인가 · 신규 상담 시점}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">03</span><span class="tt">입학생 구조</span></div><div class="eng">NEW ENROLLMENT</div></div><div class="shrule"></div>
+<p class="lead">신입생 규모가 저학년 시장의 크기다. 지역 평균과 나란히 놓아야 뜻이 생긴다.</p>
+<div class="sub1"><span class="sn">03-1.</span>성별 · 입학 구분별 입학생 수 <span class="tag">{{공시연도}}학년도 · 공시 13-나</span></div>
+<table class="tb">
+<colgroup><col style="width:18%"><col style="width:14%"><col style="width:16%"><col style="width:16%"><col style="width:14%"><col style="width:22%"></colgroup>
+<thead><tr><th>구분</th><th>적령 아동</th><th>조기 입학</th><th>유예·과령</th><th>합계</th><th>비율</th></tr></thead>
+<tbody>
+<tr><td class="k">남</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">여</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+<tr class="hl"><td class="k">합계</td><td class="c b">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c b">{{}}</td><td class="c">{{}}</td></tr>
+</tbody>
+</table>
+<div class="sub1"><span class="sn">03-2.</span>지역 평균 입학생수 비교 <span class="tag">규모가 어느 급인가</span></div>
+<table class="tb">
+<colgroup><col style="width:28%"><col style="width:24%"><col style="width:48%"></colgroup>
+<thead><tr><th>구분</th><th>평균 입학생수</th><th>이 학교 대비</th></tr></thead>
+<tbody>
+<tr><td class="k">이 학교</td><td><span class="b">{{}}명</span></td><td>—</td></tr>
+<tr><td class="k">{{구}}</td><td>{{}}명</td><td>{{}}</td></tr>
+<tr><td class="k">{{시도}}</td><td>{{}}명</td><td>{{}}</td></tr>
+<tr><td class="k">전국</td><td>{{}}명</td><td>{{}}</td></tr>
+</tbody>
+</table>
+<div class="sub1"><span class="sn">03-3.</span>신입생 4개년 추세 <span class="tag">KESS · 각 학년도 4/1 기준 1학년 재학생</span></div>
+<!-- ■ 채우기 — KESS 4개년. 1학년과 6학년을 나란히 놓아야 「입구만 좁아진다」가 보인다 -->
+<table class="tb">
+<colgroup><col style="width:20%"><col style="width:20%"><col style="width:20%"><col style="width:40%"></colgroup>
+<thead><tr><th>학년도</th><th>1학년</th><th>6학년</th><th>판정</th></tr></thead>
+<tbody>
+<tr><td class="k">{{}}학년도</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="g">{{}}</td></tr>
+<!-- ■ 채우기 — 4개년 -->
+</tbody>
+</table>
+<p class="fnote">4/1 재학생과 입학자(13-나)는 다르다 — 그 사이에 이미 전입이 들어온다. 두 값을 섞지 말 것.</p>
+<div class="nl">분석 노트</div>
+<div class="nb">{{저학년 시장이 유지되는가 · 몇 년 뒤 어느 학년이 얇아지는가 · 학원 학년 구성 계획}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">04</span><span class="tt">평가 체계와 교과평가계획</span></div><div class="eng">ASSESSMENT</div></div><div class="shrule"></div>
+<p class="lead">초등은 성취도 분포 공시가 없다. 대신 학교가 무엇을 언제 어떻게 평가하는지가 학년별 교과평가계획에 그대로 적혀 있다 — 학원 진도를 맞출 근거는 이쪽이다.</p>
+<div class="sub1"><span class="sn">04-1.</span>학업성적관리규정 골격 <span class="tag">{{규정연도}} · 조항 번호는 학교마다 다르므로 원문에서 확인</span></div>
+<!-- ■ 채우기 — act=rule 로 받은 규정에서. 성취수준 서술 방식 · 평가 방법 · 이의신청 절차 -->
+<table class="tb">
+<colgroup><col style="width:16%"><col style="width:42%"><col style="width:42%"></colgroup>
+<thead><tr><th>구분</th><th>규정 내용</th><th>실무 포인트</th></tr></thead>
+<tbody>
+<tr><td class="k">평가 방식</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">성취수준</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">수행평가</td><td>{{}}</td><td>{{}}</td></tr>
+<tr class="hl"><td class="k">이의신청</td><td>{{}}</td><td>{{}}</td></tr>
+</tbody>
+</table>
+<div class="sub1"><span class="sn">04-2.</span>규정에서 확인한 것</div>
+<ul class="dot">
+<li>{{}}</li>
+<!-- ■ 채우기 — 규정 원문에 실제로 있는 조항만. 없는 수치를 고교 예시에서 가져오지 말 것 -->
+</ul>
+<p class="fnote">초등 규정에는 분할점수·석차등급 조항이 없다. 고교 서식을 들이대지 말 것 — 없는 것은 없다고 적는다.</p>
+<div class="nl">분석 노트</div>
+<div class="nb">{{평가가 학원 진도와 어디서 만나는가}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">04</span><span class="tt">평가 체계와 교과평가계획 <span class="light">(계속)</span></span></div><div class="eng">ASSESSMENT</div></div><div class="shrule"></div>
+<div class="sub1"><span class="sn">04-3.</span>학년별 교과평가계획 — 1~3학년 <span class="tag">{{공시연도}}학년도 1학기 · 공시 4-가 첨부</span></div>
+<!-- ■ 채우기 — act=evalplan 로 받은 1~3학년 .hwp 에서. 단원별 평가 시기·방법·성취기준 -->
+<table class="det"><thead><tr><th style="width:8%">학년</th><th style="width:14%">교과</th><th style="width:22%">평가 영역·단원</th><th style="width:18%">평가 방법</th><th style="width:12%">시기</th><th style="width:26%">학원 대비 포인트</th></tr></thead><tbody>
+<tr><td class="grp" rowspan="{{n}}">{{}}학년</td><td class="subj">{{교과}}</td><td>{{영역}}</td><td>{{방법}}</td><td class="n">{{시기}}</td><td class="g">{{}}</td></tr>
+<!-- ■ 채우기 — 학년 × 교과 전수. 국어·수학·영어를 먼저, 나머지는 뒤로 -->
+</tbody></table>
+<p class="fnote">학교가 올린 계획서 원문 기준. 평가 시기는 학기 중 변경될 수 있어 상담 시 확인 필요.</p>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">04</span><span class="tt">평가 체계와 교과평가계획 <span class="light">(계속)</span></span></div><div class="eng">ASSESSMENT</div></div><div class="shrule"></div>
+<div class="sub1"><span class="sn">04-4.</span>학년별 교과평가계획 — 4~6학년 <span class="tag">{{공시연도}}학년도 1학기 · 공시 4-가 첨부</span></div>
+<!-- ■ 채우기 — act=evalplan 로 받은 4~6학년 .hwp 에서. 단원별 평가 시기·방법·성취기준 -->
+<table class="det"><thead><tr><th style="width:8%">학년</th><th style="width:14%">교과</th><th style="width:22%">평가 영역·단원</th><th style="width:18%">평가 방법</th><th style="width:12%">시기</th><th style="width:26%">학원 대비 포인트</th></tr></thead><tbody>
+<tr><td class="grp" rowspan="{{n}}">{{}}학년</td><td class="subj">{{교과}}</td><td>{{영역}}</td><td>{{방법}}</td><td class="n">{{시기}}</td><td class="g">{{}}</td></tr>
+<!-- ■ 채우기 — 학년 × 교과 전수. 국어·수학·영어를 먼저, 나머지는 뒤로 -->
+</tbody></table>
+<p class="fnote">학교가 올린 계획서 원문 기준. 평가 시기는 학기 중 변경될 수 있어 상담 시 확인 필요.</p>
+<div class="nl">분석 노트</div>
+<div class="nb">{{학교 평가 시기와 학원 진도를 어떻게 맞출 것인가 · 서술형 비중이 높은 교과 · 학년별 난도 전환점}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">05</span><span class="tt">교육과정과 수업</span></div><div class="eng">CURRICULUM</div></div><div class="shrule"></div>
+<p class="lead">수업일수와 시수는 학원 수업을 몇 시에 열 수 있는지의 상한을 정한다.</p>
+<div class="sub1"><span class="sn">05-1.</span>수업일수 및 수업시수 <span class="tag">{{공시연도}}학년도 · 공시 2-나</span></div>
+<table class="tb">
+<colgroup><col style="width:26%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:14%"></colgroup>
+<thead><tr><th>구분</th><th>이 학교</th><th>{{구}}</th><th>{{시도}}</th><th>전국</th><th>판정</th></tr></thead>
+<tbody>
+<tr><td class="k">학년별 수업일수</td><td>{{}}일</td><td>—</td><td>—</td><td>—</td><td>{{}}</td></tr>
+<tr><td class="k">주당 총 수업시수</td><td>{{}}</td><td>—</td><td>—</td><td>—</td><td>{{}}</td></tr>
+<tr><td class="k">수업 교원수</td><td>{{}}명</td><td>—</td><td>—</td><td>—</td><td>{{}}</td></tr>
+<tr class="hl"><td class="k">교사 1인당 주당 시수</td><td class="c b">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="g">{{}}</td></tr>
+</tbody>
+</table>
+<div class="sub1"><span class="sn">05-2.</span>교육운영 특색사업 <span class="tag">자율학교 · 수준별 수업 · 공시 2-라</span></div>
+<table class="tb">
+<colgroup><col style="width:26%"><col style="width:18%"><col style="width:18%"><col style="width:18%"><col style="width:20%"></colgroup>
+<thead><tr><th>구분</th><th>이 학교</th><th>{{구}} 비율</th><th>{{시도}} 비율</th><th>전국 비율</th></tr></thead>
+<tbody>
+<tr><td class="k">자율학교 지정·운영</td><td>{{}}</td><td>{{}}%</td><td>{{}}%</td><td>{{}}%</td></tr>
+<tr><td class="k">수준별 수업 운영</td><td>{{}}</td><td>{{}}%</td><td>{{}}%</td><td>{{}}%</td></tr>
+</tbody>
+</table>
+<div class="nl">분석 노트</div>
+<div class="nb">{{학교가 몇 시에 끝나는가 · 수준별 수업이 있는가 없는가 · 학원 수업 시간대 설계}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">05</span><span class="tt">교육과정과 수업 <span class="light">(계속)</span></span></div><div class="eng">CURRICULUM</div></div><div class="shrule"></div>
+<div class="sub1"><span class="sn">05-3.</span>교과(군) 시수 배당 <span class="tag">{{공시연도}}학년도 · 학교교육계획 책자에서 추출</span></div>
+<!-- ■ 채우기 — act=curriculum 은 초등에서 편제표가 아니라 책자 PDF 다. 그 안에서 편제표 쪽을 찾는다. 못 찾으면 이 .pg 를 통째로 빼고 표지 목차 쪽번호를 다시 매긴다 — 억지로 채우지 말 것 -->
+<table class="tb">
+<colgroup><col style="width:18%"><col style="width:11%"><col style="width:11%"><col style="width:11%"><col style="width:13%"><col style="width:13%"><col style="width:23%"></colgroup>
+<thead><tr><th>교과(군)</th><th>1~2학년</th><th>3~4학년</th><th>5~6학년</th><th>합계</th><th>기준 시수</th><th>증감</th></tr></thead>
+<tbody>
+<tr><td class="k">{{교과군}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c b">{{}}</td><td class="c">{{}}</td><td class="g">{{}}</td></tr>
+<!-- ■ 채우기 — 국어·사회/도덕·수학·과학/실과·체육·예술·영어·창의적 체험활동 -->
+<tr class="sumrow"><td class="k">총계</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c b">{{}}</td><td class="c">{{}}</td><td class="g">{{}}</td></tr>
+</tbody>
+</table>
+<p class="fnote">기준 시수는 2022 개정 교육과정 교과(군)별 기준. 증감은 산출치(운영 − 기준).</p>
+<div class="nl">분석 노트</div>
+<div class="nb">{{어느 교과에 시수를 더 넣었는가 · 그 교과가 학원 수요와 어떻게 만나는가}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">06</span><span class="tt">체력 등급 분포</span></div><div class="eng">PAPS</div></div><div class="shrule"></div>
+<p class="lead">초등 공시에서 학년·성별 분포를 주는 유일한 자료. 등급 라벨만 다를 뿐 고교 성취도 분포와 표의 생김새가 같다.</p>
+<p class="fnote" style="margin-bottom:4pt;">범례 <i class="sA" style="display:inline-block;width:7pt;height:5pt;"></i> 1등급 <i class="sB" style="display:inline-block;width:7pt;height:5pt;"></i> 2등급 <i class="sC" style="display:inline-block;width:7pt;height:5pt;"></i> 3등급 <i class="sD" style="display:inline-block;width:7pt;height:5pt;"></i> 4등급 <i class="sE" style="display:inline-block;width:7pt;height:5pt;"></i> 5등급</p>
+<div class="sub1"><span class="sn">06-1.</span>학년별·성별 1~5등급 분포 — 5·6학년 <span class="tag">{{연도범위}} 3개년 · 공시 15-자</span></div>
+<!-- ■ 채우기 — act=paps 3개년. 3개년이 온전히 서는 학년은 5·6학년뿐이다(§5-3) -->
+<table class="ach"><thead><tr><th class="c" style="width:7%">분류</th><th style="width:14%">구분</th><th class="c" style="width:6.5%">성별</th><th style="width:53.5%">3개년 분포 (위→아래 {{연도1}} · {{연도2}} · {{연도3}})</th><th style="width:19%">판정·분석</th></tr></thead><tbody>
+<tr><td class="grp" rowspan="{{n}}">5학년</td><td class="subj">전체</td><td class="sem">남</td><td><div class="yline"><span class="yr">{{yy}}</span><div class="bar"><i class="sA" style="width:{{}}%"></i><i class="sB" style="width:{{}}%"></i><i class="sC" style="width:{{}}%"></i><i class="sD" style="width:{{}}%"></i><i class="sE" style="width:{{}}%"></i></div><span class="ann">1등급 {{}}% · n {{}}</span></div><!-- ■ 채우기 — 나머지 두 해 — 없는 해는 막대 없이 – 만 둔다 --></td><td rowspan="{{n}}" style="font-size:6.8pt;">{{판정}}</td></tr>
+<!-- ■ 채우기 — 5·6학년 × 남/여 -->
+</tbody></table>
+<p class="fnote">검사 인원수를 각 줄 오른쪽에 함께 적는다 — 인원이 한 자릿수인 해는 분포로 읽으면 안 된다.</p>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">06</span><span class="tt">체력 등급 분포 <span class="light">(계속)</span></span></div><div class="eng">PAPS</div></div><div class="shrule"></div>
+<p class="fnote" style="margin-bottom:4pt;">범례 <i class="sA" style="display:inline-block;width:7pt;height:5pt;"></i> 1등급 <i class="sB" style="display:inline-block;width:7pt;height:5pt;"></i> 2등급 <i class="sC" style="display:inline-block;width:7pt;height:5pt;"></i> 3등급 <i class="sD" style="display:inline-block;width:7pt;height:5pt;"></i> 4등급 <i class="sE" style="display:inline-block;width:7pt;height:5pt;"></i> 5등급</p>
+<div class="sub1"><span class="sn">06-2.</span>4학년 <span class="tag">{{공시연도}} 1개년만 — 이전 연도는 결측</span></div>
+<table class="ach"><thead><tr><th class="c" style="width:7%">분류</th><th style="width:14%">구분</th><th class="c" style="width:6.5%">성별</th><th style="width:53.5%">{{최신연도}} 분포</th><th style="width:19%">판정·분석</th></tr></thead><tbody>
+<tr><td class="grp" rowspan="2">4학년</td><td class="subj">전체</td><td class="sem">남</td><td><div class="yline"><span class="yr">{{yy}}</span><div class="bar"><i class="sA" style="width:{{}}%"></i><i class="sB" style="width:{{}}%"></i><i class="sC" style="width:{{}}%"></i><i class="sD" style="width:{{}}%"></i><i class="sE" style="width:{{}}%"></i></div><span class="ann">1등급 {{}}% · n {{}}</span></div></td><td rowspan="2" style="font-size:6.8pt;">{{판정}}</td></tr>
+<!-- ■ 채우기 — 4학년 여 한 줄 더 -->
+</tbody></table>
+<p class="fnote">초1~3 은 PAPS 측정 대상이 아니다. 4학년은 연도에 따라 아예 없거나 검사 인원이 한 자릿수라 3개년 막대를 세우지 않았다.</p>
+<div class="sub1"><span class="sn">06-3.</span>지역 대비 등급 분포 <span class="tag">구/시도/전국 비교</span></div>
+<table class="tb">
+<colgroup><col style="width:24%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:16%"></colgroup>
+<thead><tr><th>구분</th><th>1등급</th><th>2등급</th><th>3등급</th><th>4등급</th><th>5등급</th></tr></thead>
+<tbody>
+<tr class="hl"><td class="k">이 학교</td><td class="c b">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td></tr>
+<tr><td class="k">{{구}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">{{시도}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">전국</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+</tbody>
+</table>
+<div class="sub1"><span class="sn">06-4.</span>종목별 평균기록 <span class="tag">값이 있는 종목만</span></div>
+<!-- ■ 채우기 — 머리글이 12종이지만 학교가 택한 5개 안팎만 채워진다. 열 위치가 아니라 머리글로 매칭하고, 빈 종목은 열에서 뺀다 -->
+<table class="tb">
+<colgroup><col style="width:12%"><col style="width:10%"><col style="width:15.6%"><col style="width:15.6%"><col style="width:15.6%"><col style="width:15.6%"><col style="width:15.6%"></colgroup>
+<thead><tr><th>학년</th><th>성별</th><th>{{종목1}}</th><th>{{종목2}}</th><th>{{종목3}}</th><th>{{종목4}}</th><th>{{종목5}}</th></tr></thead>
+<tbody>
+<tr><td class="k">{{}}학년</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td></tr>
+<!-- ■ 채우기 — 4~6학년 × 남/여 -->
+</tbody>
+</table>
+<div class="nl">분석 노트</div>
+<div class="nb">{{체력·비만 분포가 구 대비 어떤가 · 체육 연계 상품 여지}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">07</span><span class="tt">방과후학교와 돌봄</span></div><div class="eng">AFTER SCHOOL</div></div><div class="shrule"></div>
+<p class="lead">학원의 직접 경쟁 지형. 몇 명을 몇 시까지 잡아두는지가 우리 수업 시간대를 정한다.</p>
+<div class="sub1"><span class="sn">07-1.</span>방과후학교 운영 현황 <span class="tag">{{공시연도}}학년도 · 공시 15-라 + apiType 59</span></div>
+<div class="stats">
+<div class="st"><div class="k">프로그램 수</div><div class="v">{{}}개 <small>교과 {{}} + 특기적성 {{}}</small></div></div>
+<div class="st"><div class="k">참여 학생</div><div class="v">{{}}명 <small>참여율 {{}}%</small></div></div>
+<div class="st"><div class="k">수강 건수</div><div class="v">{{}}건 <small>1인당 {{}}개</small></div></div>
+<div class="st"><div class="k">수익자 부담</div><div class="v">{{}}원</div></div>
+</div>
+<table class="tb">
+<colgroup><col style="width:22%"><col style="width:16%"><col style="width:16%"><col style="width:16%"><col style="width:30%"></colgroup>
+<thead><tr><th>구분</th><th>프로그램 수</th><th>수강 학생</th><th>참여율</th><th>학원 관점</th></tr></thead>
+<tbody>
+<tr><td class="k">교과</td><td>{{}}</td><td>{{}}</td><td>{{}}%</td><td>{{}}</td></tr>
+<tr><td class="k">특기적성</td><td>{{}}</td><td>{{}}</td><td>{{}}%</td><td>{{}}</td></tr>
+<tr class="hl"><td class="k">계</td><td class="c b">{{}}</td><td class="c b">{{}}</td><td class="c b">{{}}%</td><td class="g">{{}}</td></tr>
+</tbody>
+</table>
+<p class="fnote">참여율은 산출치 — 참여 학생 ÷ 재학생. 수강 건수는 중복 수강을 포함하므로 참여 학생과 다르다.</p>
+<div class="nl">분석 노트</div>
+<div class="nb">{{교과 방과후가 학원과 정면으로 겹치는가 · 수익자 부담 규모가 학부모 지불 여력을 말해 주는가}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">07</span><span class="tt">방과후학교와 돌봄 <span class="light">(계속)</span></span></div><div class="eng">AFTER SCHOOL</div></div><div class="shrule"></div>
+<div class="sub1"><span class="sn">07-2.</span>돌봄교실 운영 <span class="tag">apiType 59 (ECC) + 공시 15-라 첨부</span></div>
+<!-- ■ 채우기 — 오후·저녁 돌봄 각각. 학년 범위와 운영 시간이 핵심 — 첨부 운영계획서에서 -->
+<table class="tb">
+<colgroup><col style="width:24%"><col style="width:16%"><col style="width:18%"><col style="width:20%"><col style="width:22%"></colgroup>
+<thead><tr><th>구분</th><th>교실 수</th><th>참여 학생</th><th>대상 학년</th><th>운영 시간</th></tr></thead>
+<tbody>
+<tr><td class="k">오후 돌봄</td><td>{{}}</td><td>{{}}명</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">저녁 돌봄</td><td>{{}}</td><td>{{}}명</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">방과후 연계형</td><td>{{}}</td><td>{{}}명</td><td>{{}}</td><td>{{}}</td></tr>
+</tbody>
+</table>
+<p class="fnote">운영 시간은 학교가 올린 돌봄교실 운영계획서 기준. 학년도 중 변경될 수 있다.</p>
+<div class="nl">분석 노트</div>
+<div class="nb">{{저학년이 몇 시에 풀리는가 · 우리 수업을 몇 시에 열 것인가 · 돌봄 정원이 막힌 학년이 곧 학원 수요}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">08</span><span class="tt">동아리 활동</span></div><div class="eng">CLUBS</div></div><div class="shrule"></div>
+<div class="sub1"><span class="sn">08-1.</span>창의적 체험활동 · 학생 자율 동아리 <span class="tag">{{공시연도}}학년도 · 공시 15-나</span></div>
+<table class="tb">
+<colgroup><col style="width:20%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:16%"><col style="width:22%"></colgroup>
+<thead><tr><th>구분</th><th>동아리 수</th><th>참여 학생</th><th>지도교사</th><th>외부강사</th><th>예산</th></tr></thead>
+<tbody>
+<tr><td class="k">창체 동아리</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}원</td></tr>
+<tr><td class="k">학생 자율 동아리</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}원</td></tr>
+</tbody>
+</table>
+<div class="sub1"><span class="sn">08-2.</span>지역 비교</div>
+<table class="tb">
+<colgroup><col style="width:28%"><col style="width:24%"><col style="width:48%"></colgroup>
+<thead><tr><th>구분</th><th>참여 비율</th><th>판정</th></tr></thead>
+<tbody>
+<tr><td class="k">이 학교</td><td><span class="b">{{}}%</span></td><td>{{}}</td></tr>
+<tr><td class="k">{{구}}</td><td>{{}}%</td><td>—</td></tr>
+<tr><td class="k">{{시도}}</td><td>{{}}%</td><td>—</td></tr>
+<tr><td class="k">전국</td><td>{{}}%</td><td>—</td></tr>
+</tbody>
+</table>
+<p class="fnote">참여 비율은 산출치 — 참여 학생 ÷ 재학생. 한 학생이 여러 동아리에 들면 100%를 넘을 수 있다.</p>
+<div class="nl">분석 노트</div>
+<div class="nb">{{동아리가 학교 안에서 무엇을 흡수하는가}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">09</span><span class="tt">도서관 · 상담 · 급식</span></div><div class="eng">FACILITIES</div></div><div class="shrule"></div>
+<p class="lead">셋 다 구/시도/전국 비교가 붙는다 — 이 학교가 같은 구 안에서 어디쯤인지가 그대로 보인다.</p>
+<div class="sub1"><span class="sn">09-1.</span>학교도서관 <span class="tag">공시 15-다</span></div>
+<table class="tb tight">
+<colgroup><col style="width:28%"><col style="width:18%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+<thead><tr><th>구분</th><th>이 학교</th><th>{{구}}</th><th>{{시도}}</th><th>전국</th></tr></thead>
+<tbody>
+<tr><td class="k">1인당 장서수</td><td><span class="b">{{}}권</span></td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">1인당 대출자료수</td><td><span class="b">{{}}권</span></td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+</tbody>
+</table>
+<div class="sub1"><span class="sn">09-2.</span>학생·학부모 상담 <span class="tag">공시 15-마</span></div>
+<table class="tb tight">
+<colgroup><col style="width:28%"><col style="width:18%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+<thead><tr><th>구분</th><th>이 학교</th><th>{{구}}</th><th>{{시도}}</th><th>전국</th></tr></thead>
+<tbody>
+<tr><td class="k">Wee클래스 설치</td><td>{{}}</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td class="k">내부상담 실적</td><td>{{}}건</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">외부상담 실적</td><td>{{}}건</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+</tbody>
+</table>
+<div class="sub1"><span class="sn">09-3.</span>급식 <span class="tag">공시 9-가-1</span></div>
+<table class="tb tight">
+<colgroup><col style="width:28%"><col style="width:18%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+<thead><tr><th>구분</th><th>이 학교</th><th>{{구}}</th><th>{{시도}}</th><th>전국</th></tr></thead>
+<tbody>
+<tr><td class="k">운영 방식</td><td>{{}}</td><td>{{}}%</td><td>{{}}%</td><td>{{}}%</td></tr>
+<tr><td class="k">급식 인력</td><td>영양 {{}} · 조리사 {{}} · 조리원 {{}}</td><td>—</td><td>—</td><td>—</td></tr>
+</tbody>
+</table>
+<div class="nl">분석 노트</div>
+<div class="nb">{{구 평균에 견줘 두드러지게 낮거나 높은 지표 · 그 자리에 학원이 채울 수 있는 것}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">10</span><span class="tt">교원과 시설</span></div><div class="eng">STAFF & FACILITIES</div></div><div class="shrule"></div>
+<div class="sub1"><span class="sn">10-1.</span>직위별 교원 현황 <span class="tag">{{공시연도}}학년도 · 공시 6-가</span></div>
+<!-- ■ 채우기 — 교원 수는 출처마다 다르다(수업교원 · 전체 교원 · KESS). 어느 기준인지 밝히고 표지와 통일할 것 -->
+<table class="tb">
+<colgroup><col style="width:20%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:20%"></colgroup>
+<thead><tr><th>구분</th><th>교장·교감</th><th>보직</th><th>일반</th><th>기간제</th><th>기타</th><th>계</th></tr></thead>
+<tbody>
+<tr><td class="k">남</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">여</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+<tr class="hl"><td class="k">계</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c b">{{}}</td></tr>
+</tbody>
+</table>
+<div class="sub1"><span class="sn">10-2.</span>지역 대비 성별 교원 비율</div>
+<table class="tb tight">
+<colgroup><col style="width:28%"><col style="width:24%"><col style="width:24%"><col style="width:24%"></colgroup>
+<thead><tr><th>구분</th><th>남</th><th>여</th><th>판정</th></tr></thead>
+<tbody>
+<tr><td class="k">이 학교</td><td><span class="b">{{}}%</span></td><td>{{}}%</td><td>{{}}</td></tr>
+<tr><td class="k">{{구}}</td><td>{{}}%</td><td>{{}}%</td><td>—</td></tr>
+<tr><td class="k">{{시도}}</td><td>{{}}%</td><td>{{}}%</td><td>—</td></tr>
+<tr><td class="k">전국</td><td>{{}}%</td><td>{{}}%</td><td>—</td></tr>
+</tbody>
+</table>
+<div class="sub1"><span class="sn">10-3.</span>지원 시설 <span class="tag">공시 5-나-2</span></div>
+<table class="tb tight">
+<colgroup><col style="width:24%"><col style="width:19%"><col style="width:19%"><col style="width:19%"><col style="width:19%"></colgroup>
+<thead><tr><th>구분</th><th>이 학교</th><th>{{구}}</th><th>{{시도}}</th><th>전국</th></tr></thead>
+<tbody>
+<tr><td class="k">체육관</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">강당</td><td>{{}}</td><td>{{}}</td><td>{{}}</td><td>{{}}</td></tr>
+<tr><td class="k">수영장</td><td>{{}}</td><td>—</td><td>—</td><td>—</td></tr>
+</tbody>
+</table>
+<div class="nl">분석 노트</div>
+<div class="nb">{{시설이 방과후·돌봄 운영 폭을 어떻게 제한하거나 넓히는가}}</div>
+</div>
+
+<div class="pg">
+<div class="sh"><div><span class="num">11</span><span class="tt">안전과 학교폭력</span></div><div class="eng">SAFETY</div></div><div class="shrule"></div>
+<p class="lead">학부모 상담에서 자주 나오는 질문이다. 수치가 있으면 그대로, 없으면 없다고 적는다.</p>
+<div class="sub1"><span class="sn">11-1.</span>안전교육 영역별 이수 시간 <span class="tag">{{공시연도}}학년도 · 공시 10-라</span></div>
+<table class="tb">
+<colgroup><col style="width:22%"><col style="width:16%"><col style="width:16%"><col style="width:16%"><col style="width:30%"></colgroup>
+<thead><tr><th>영역</th><th>1학기</th><th>2학기</th><th>합계</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td class="k">{{영역}}</td><td class="c">{{}}</td><td class="c">{{}}</td><td class="c b">{{}}</td><td class="g">{{}}</td></tr>
+<!-- ■ 채우기 — 생활·교통·폭력예방·약물·지능정보·재난·직업·응급처치 8개 영역 -->
+</tbody>
+</table>
+<div class="sub1"><span class="sn">11-2.</span>학교폭력 심의 결과 <span class="tag">공시 11-다 · 11-라</span></div>
+<table class="tb">
+<colgroup><col style="width:34%"><col style="width:22%"><col style="width:44%"></colgroup>
+<thead><tr><th>구분</th><th>건수</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td class="k">심의위원회 심의</td><td>{{}}건</td><td>{{}}</td></tr>
+<tr><td class="k">학교장 자체해결</td><td>{{}}건</td><td>{{}}</td></tr>
+</tbody>
+</table>
+<p class="fnote">공시에 값이 없으면 「공시 없음」으로 적는다 — 0건과 미공시는 다르다.</p>
+<div class="nl">분석 노트</div>
+<div class="nb">{{학부모 상담에서 이 학교에 대해 답해 줄 수 있는 것}}</div>
+</div>
+
+</body></html>

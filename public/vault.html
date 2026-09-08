@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>School Radar · 저장소</title>
+<meta name="description" content="받아 둔 공시 자료와 만들어진 분석 리포트를 폴더 그대로 봅니다." />
+<meta name="theme-color" content="#17191c" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+<link rel="stylesheet" href="style.css" />
+<script>
+try{ document.documentElement.dataset.theme =
+       localStorage.getItem('sr-theme') === 'light' ? 'light' : 'dark'; }catch(e){}
+</script>
+<style>
+  /* 저장소 화면에만 필요한 것 — 파일 카드(.fgrid/.fcard)는 style.css 를 같이 쓴다 */
+  .vhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 6px}
+  .vhead h1{margin:0;font-size:22px;letter-spacing:-.02em}
+  .vhead .sp{flex:1}
+  .vpath{font-size:12px;color:var(--muted);word-break:break-all;margin:0 0 18px}
+
+  /* 학교 폴더 카드 — 드라이브의 폴더 줄과 같은 자리 */
+  .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:10px}
+  .dcard{display:flex;flex-direction:column;gap:6px;padding:13px 14px;border-radius:11px;
+         border:1px solid var(--line);background:var(--s2);cursor:pointer;text-align:left;
+         font:inherit;color:inherit}
+  .dcard:hover{border-color:var(--accent);background:var(--s3);filter:none}
+  .dcard .row1{display:flex;align-items:center;gap:8px;min-width:0}
+  .dcard .fold{flex:none;color:var(--muted)}
+  .dcard .nm{flex:1;min-width:0;font-size:14px;font-weight:700;letter-spacing:-.01em;
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dcard .sub{font-size:11.5px;color:var(--muted)}
+  .dcard .bar{display:flex;align-items:center;gap:6px;margin-top:2px}
+  .dcard .bar .sp{flex:1}
+
+  .tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid currentColor;
+       white-space:nowrap}
+  .tag.done{color:var(--ok)} .tag.running{color:#d0a13f}
+  .tag.failed{color:var(--bad)} .tag.none{color:var(--muted)}
+
+  /* 폴더 하나를 열었을 때 */
+  .crumb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;font-size:13px}
+  .crumb button{background:transparent;border:0;color:var(--muted);font:inherit;padding:4px 2px}
+  .crumb button:hover{color:var(--text);filter:none}
+  .crumb .cur{font-weight:700}
+  .crumb .sep{color:var(--muted)}
+  .viewer{width:100%;height:78vh;border:1px solid var(--line);border-radius:11px;margin-top:12px;background:#fff}
+  .vbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  .vbar .sp{flex:1}
+  .empty{padding:44px 16px;text-align:center;color:var(--muted);font-size:13px;line-height:1.7}
+  /* 버튼 모양은 style.css 의 .btn 하나만 쓴다 — 여기서 다시 정의하지 않는다.
+     그게 '받기'와 '삭제'가 서로 다른 크기로 나오던 원인이었다. */
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="tb-brand" href="app.html">School Radar</a>
+    <span class="sp"></span>
+    <button class="tb-theme" id="themeToggle" type="button" aria-pressed="false" aria-label="화면 테마 전환">
+      <svg class="lucide i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      <svg class="lucide i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+    </button>
+    <a class="tb-link" href="app.html">학교 검색</a>
+    <a class="leave" href="app.html">돌아가기</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="vhead">
+    <h1 id="vtitle">저장소</h1>
+    <span class="sp"></span>
+    <button type="button" class="btn" id="openRoot" title="탐색기에서 저장소 폴더 열기">폴더 열기</button>
+    <button type="button" class="btn" id="reload">새로고침</button>
+  </div>
+  <div class="vpath" id="vpath"></div>
+  <div id="view"><div class="empty">읽는 중…</div></div>
+</div>
+
+<!-- 폴더 삭제 확인 — 되돌릴 수 없는 동작이라 예/아니오로는 부족하다.
+     정확한 문장을 손으로 쳐야 버튼이 열린다. -->
+<div class="modal" id="dropModal" hidden>
+  <div class="box">
+    <h3>폴더를 통째로 지웁니다</h3>
+    <p id="dropWhat"></p>
+    <p>공시 원문·수집 데이터·만들어진 리포트가 모두 사라집니다. <b>되돌릴 수 없습니다.</b><br>
+       계속하려면 아래에 <b>삭제하겠습니다</b> 를 그대로 입력하세요.</p>
+    <input id="dropInput" autocomplete="off" placeholder="삭제하겠습니다" />
+    <div class="msg" id="dropMsg"></div>
+    <div class="acts">
+      <button type="button" class="btn" id="dropCancel">취소</button>
+      <button type="button" class="btn danger" id="dropOk" disabled>삭제</button>
+    </div>
+  </div>
+</div>
+
+<script src="gate.js"></script>
+<script>
+if (!unlocked()) location.replace('index.html');
+</script>
+<script>
+/* 테마 — app.html 과 같은 규칙 */
+(function(){
+  const btn  = document.getElementById('themeToggle');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const paint = t => {
+    document.documentElement.dataset.theme = t;
+    const light = t === 'light';
+    btn.setAttribute('aria-pressed', String(light));
+    btn.title = light ? '다크 테마로 전환' : '라이트 테마로 전환';
+    if (meta) meta.content = light ? '#ffffff' : '#17191c';
+  };
+  paint(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+  btn.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    try { localStorage.setItem('sr-theme', next); } catch (e) {}
+    paint(next);
+  });
+})();
+</script>
+<script>
+/* ═════════ 저장소 ═════════
+   두 화면이다 — 학교 폴더 목록, 그리고 폴더 하나를 열었을 때의 파일 카드.
+   전에는 학교마다 표를 세로로 쌓아서, 학교가 몇 개만 넘어가도 무엇이 어디 있는지
+   훑기 어려웠다. 드라이브처럼 폴더 → 파일 두 단계로 나눈다.
+
+   여기 보이는 것은 전부 프로젝트의 vault/ 안에 실제로 있는 파일이다. 그래서
+   클로드코드가 만든 PDF 가 새로고침만으로 나타나고, 여기서 지우면 진짜 지워진다. */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mb = b => b >= 1048576 ? (b / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(b / 1024)) + 'KB';
+const when = t => { try { return new Date(t).toLocaleString('ko-KR'); } catch { return ''; } };
+
+const KIND_NM   = { '02':'초', '03':'중', '04':'고', '05':'특수' };
+const KIND_LABEL = { raw: '공시 원문', data: '수집 데이터', out: '리포트' };
+const KIND_ORDER = { out: 0, raw: 1, data: 2 };
+const STATE = { done:'리포트 완료', running:'만드는 중', failed:'리포트 실패', none:'리포트 없음' };
+
+const EXT_OF = n => (String(n).split('.').pop() || '').toLowerCase();
+const EXT_CLASS = e => ['pdf','xls','xlsx','hwp','hwpx','json','csv','md'].includes(e)
+  ? ({ xlsx:'xls', hwpx:'hwp' }[e] || e) : '';
+const fileUrl = (id, rel, dl) =>
+  `/vault/${encodeURIComponent(id)}/${rel.split('/').map(encodeURIComponent).join('/')}${dl ? '?dl=1' : ''}`;
+
+let DATA = null;        // 마지막으로 받아 온 목록
+/* 열어 둔 폴더. ?id= 로 들어오면 그 폴더를 바로 편다 — 도구 화면에서 이 학교 자료로
+   곧장 건너뛸 수 있게. 주소를 바꿔 두면 새로고침·뒤로가기도 그대로 먹는다. */
+let openId = new URLSearchParams(location.search).get('id') || null;
+
+function setOpen(id, push){
+  openId = id;
+  const url = id ? `vault.html?id=${encodeURIComponent(id)}` : 'vault.html';
+  if (push) history.pushState({ id }, '', url);
+  draw();
+}
+addEventListener('popstate', e => {
+  openId = (e.state && e.state.id) || new URLSearchParams(location.search).get('id') || null;
+  draw();
+});
+
+/* ── 학교 폴더 목록 ── */
+function folderCard(s){
+  const st = (s.report && s.report.status) || 'none';
+  const nm = (s.school && s.school.nm) || s.id;
+  const kind = s.school && KIND_NM[s.school.kind];
+  return `<button type="button" class="dcard" data-open="${esc(s.id)}">
+    <span class="row1">
+      <svg class="lucide fold" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+      <span class="nm">${kind ? `[${kind}] ` : ''}${esc(nm)}</span>
+    </span>
+    <span class="sub">${esc(s.year || '')}년 공시 · 파일 ${s.count}개 · ${mb(s.bytes)}</span>
+    <span class="bar">
+      <span class="sub">${when(s.updated || s.created)}</span>
+      <span class="sp"></span>
+      <span class="tag ${st}">${STATE[st] || st}</span>
+    </span>
+  </button>`;
+}
+
+/* ── 폴더 하나 ── */
+function fileCard(id, rel, f){
+  const name = rel.slice(rel.indexOf('/') + 1);
+  const kind = rel.slice(0, rel.indexOf('/'));
+  const ext  = EXT_OF(name);
+  return `<div class="fcard${kind === 'out' && ext === 'pdf' ? ' isreport' : ''}">
+    <span class="top">
+      <span class="ext ${EXT_CLASS(ext)}">${esc(ext.slice(0, 4).toUpperCase())}</span>
+      <a class="nm" href="${fileUrl(id, rel)}" target="_blank" rel="noopener"
+         title="${esc(name)}">${esc(name)}</a>
+    </span>
+    <span class="lbl">${esc(f.label || KIND_LABEL[kind] || kind)} · ${mb(f.size || 0)}</span>
+    <span class="foot">
+      <button type="button" class="btn sm" data-reveal="${esc(rel)}" title="탐색기에서 이 파일 보기">폴더</button>
+      <span class="sp"></span>
+      <a class="btn sm" href="${fileUrl(id, rel, true)}">받기</a>
+      <button type="button" class="btn sm danger" data-del="${esc(rel)}">삭제</button>
+    </span>
+  </div>`;
+}
+
+const sortFiles = files => Object.entries(files).sort((a, b) => {
+  const ka = a[0].split('/')[0], kb = b[0].split('/')[0];
+  return (KIND_ORDER[ka] ?? 9) - (KIND_ORDER[kb] ?? 9) || a[0].localeCompare(b[0], 'ko');
+});
+
+function drawFolder(s){
+  const nm = (s.school && s.school.nm) || s.id;
+  const pdf = s.report && s.report.pdf;
+  $('#vtitle').textContent = nm;
+  $('#view').innerHTML = `
+    <div class="crumb">
+      <button type="button" data-back>← 저장소</button>
+      <span class="sep">/</span>
+      <span class="cur">${esc(nm)}</span>
+      <span class="sep">·</span>
+      <span>${esc(s.year || '')}년 공시 · 파일 ${s.count}개 · ${mb(s.bytes)}</span>
+    </div>
+    ${s.school && s.school.addr ? `<div class="vpath">${esc(s.school.addr)}</div>` : ''}
+    <div class="fgrid">
+      ${s.count ? sortFiles(s.files).map(([rel, f]) => fileCard(s.id, rel, f)).join('')
+                : '<div class="empty">이 폴더에 파일이 없습니다.</div>'}
+    </div>
+    <div class="vbar">
+      <button type="button" class="btn" data-reveal="">폴더 열기</button>
+      <a class="btn" href="app.html?school=${encodeURIComponent(nm)}">이 학교 다시 조회</a>
+      ${pdf ? `<button type="button" class="btn" data-view="${esc(fileUrl(s.id, pdf))}">리포트 미리보기</button>` : ''}
+      <span class="sp"></span>
+      <button type="button" class="btn danger" data-drop="${esc(s.id)}">이 폴더 삭제</button>
+    </div>
+    <div data-viewer></div>`;
+}
+
+function draw(){
+  if (!DATA) return;
+  $('#vpath').textContent = DATA.root || '';
+  const cur = openId && DATA.schools.find(s => s.id === openId);
+  if (cur) { drawFolder(cur); return; }
+  openId = null;   // 지워졌거나 없는 폴더를 가리키면 목록으로 되돌린다
+  $('#vtitle').textContent = '저장소';
+  $('#view').innerHTML = DATA.schools.length
+    ? `<div class="dgrid">${DATA.schools.map(folderCard).join('')}</div>`
+    : `<div class="empty">아직 받은 자료가 없습니다.<br>
+       <a href="app.html">학교 검색</a>에서 학교를 고르고 파일을 받아 보세요.</div>`;
+}
+
+async function load(){
+  try {
+    const r = await fetch('/api/vault');
+    if (!r.ok) throw new Error(String(r.status));
+    DATA = await r.json();
+  } catch {
+    $('#view').innerHTML = `<div class="empty">저장소에 연결하지 못했습니다.<br><br>
+      <code>node dev.js</code> 로 띄운 로컬 서버에서 열어야 합니다.</div>`;
+    return;
+  }
+  draw();
+}
+
+/* 삭제는 진짜 디스크에서 지운다 — 한 번 묻는다 */
+$('#view').addEventListener('click', async e => {
+  const open = e.target.closest('[data-open]');
+  if (open) { setOpen(open.dataset.open, true); window.scrollTo(0, 0); return; }
+
+  if (e.target.closest('[data-back]')) { setOpen(null, true); return; }
+
+  const view = e.target.closest('[data-view]');
+  if (view) {
+    const box = $('[data-viewer]');
+    const on = !box.innerHTML;
+    box.innerHTML = on ? `<iframe class="viewer" src="${view.dataset.view}" title="분석 리포트"></iframe>` : '';
+    view.textContent = on ? '미리보기 닫기' : '리포트 미리보기';
+    return;
+  }
+
+  /* 탐색기에서 열기 — 브라우저는 로컬 경로를 못 연다. 서버가 대신 띄운다.
+     data-reveal 이 빈 값이면 폴더, 파일 경로면 그 파일을 선택한 채로 연다. */
+  const reveal = e.target.closest('[data-reveal]');
+  if (reveal) {
+    const rel = reveal.dataset.reveal;
+    const qs = new URLSearchParams({ id: openId, reveal: '1' });
+    if (rel) qs.set('file', rel);
+    const before = reveal.textContent;
+    try {
+      const r = await fetch(`/api/vault?${qs}`, { method: 'POST' });
+      if (!r.ok) throw new Error(((await r.json()) || {}).error || '열지 못했습니다');
+    } catch (err) {
+      reveal.textContent = '열지 못함';
+      setTimeout(() => { reveal.textContent = before; }, 1800);
+    }
+    return;
+  }
+
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    if (!confirm(`${del.dataset.del} 을(를) 지웁니다. 되돌릴 수 없습니다.`)) return;
+    await fetch(`/api/vault?id=${encodeURIComponent(openId)}&file=${encodeURIComponent(del.dataset.del)}`,
+                { method: 'DELETE' });
+    load();
+    return;
+  }
+
+  const drop = e.target.closest('[data-drop]');
+  if (drop) askDrop(drop.dataset.drop);
+});
+
+/* ── 폴더 삭제 확인창 ──
+   문장을 정확히 입력해야 삭제 버튼이 열린다. 실수로 폴더 하나를 통째로 날리는 일이
+   confirm() 한 번으로 일어나면 안 된다 — 안에 리포트까지 들어 있다. */
+const DROP_PHRASE = '삭제하겠습니다';
+let dropId = null;
+
+function askDrop(id){
+  dropId = id;
+  const s = DATA && DATA.schools.find(x => x.id === id);
+  const nm = (s && s.school && s.school.nm) || id;
+  $('#dropWhat').innerHTML = `<b>${esc(nm)}</b> · 파일 ${s ? s.count : '?'}개${s ? ` · ${mb(s.bytes)}` : ''}`;
+  $('#dropInput').value = ''; $('#dropMsg').textContent = '';
+  $('#dropOk').disabled = true;
+  $('#dropModal').hidden = false;
+  $('#dropInput').focus();
+}
+const closeDrop = () => { $('#dropModal').hidden = true; dropId = null; };
+
+$('#dropInput').addEventListener('input', e => {
+  $('#dropOk').disabled = e.target.value.trim() !== DROP_PHRASE;
+});
+$('#dropInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !$('#dropOk').disabled) $('#dropOk').click();
+  if (e.key === 'Escape') closeDrop();
+});
+$('#dropCancel').onclick = closeDrop;
+$('#dropModal').addEventListener('mousedown', e => { if (e.target.id === 'dropModal') closeDrop(); });
+
+$('#dropOk').onclick = async () => {
+  if (!dropId || $('#dropInput').value.trim() !== DROP_PHRASE) return;
+  const id = dropId;
+  $('#dropOk').disabled = true; $('#dropMsg').textContent = '지우는 중…';
+  try {
+    const r = await fetch(`/api/vault?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error(((await r.json()) || {}).error || '지우지 못했습니다');
+    closeDrop();
+    setOpen(null, true);
+    load();
+  } catch (err) {
+    $('#dropMsg').textContent = err.message;
+    $('#dropOk').disabled = false;
+  }
+};
+
+$('#openRoot').onclick = async () => {
+  /* 목록 화면에서는 저장소 최상위를 연다 — 폴더를 열어 둔 상태면 그 폴더를. */
+  const qs = new URLSearchParams({ id: openId || '__root__', reveal: '1' });
+  try { await fetch(`/api/vault?${qs}`, { method: 'POST' }); } catch {}
+};
+$('#reload').onclick = load;
+load();
+</script>
+</body>
+</html>

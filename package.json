@@ -1,0 +1,18 @@
+{
+  "name": "dataget-web",
+  "version": "1.0.0",
+  "description": "학원 원장이 URL 하나만 열면 학교별 공시 데이터를 표로 받아가는 페이지. **인증키를 요구하지 않고**(키는 서버에만 있다), **지역도 고르지 않는다** — 학교 이름만 치면 전국 12,650개교에서 자동완성으로 골라 바로 조회된다.",
+  "main": "build-schools.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "iconv-lite": "^0.7.3"
+  },
+  "devDependencies": {
+    "exceljs": "^4.4.0"
+  }
+}

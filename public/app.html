@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>School Radar · 학교 검색</title>
+<meta name="description" content="학교알리미 공시데이터를 분석보고서용 표로 뽑아 줍니다." />
+<meta name="theme-color" content="#17191c" />
+<!-- 파비콘 — 히어로의 레이더 마크를 그대로 축소한 것. SVG 를 못 받는 브라우저용 PNG 를 같이 둔다 -->
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+<link rel="stylesheet" href="style.css" />
+<script>
+/* 스타일시트 바로 뒤·첫 페인트 전에 테마를 붙인다 — 라이트로 쓰던 사람이
+   새로고침할 때 다크가 한 번 번쩍이는 걸 막는다. 기본값은 다크. */
+try{ document.documentElement.dataset.theme =
+       localStorage.getItem('sr-theme') === 'light' ? 'light' : 'dark'; }catch(e){}
+</script>
+</head>
+<body>
+<header class="topbar" id="topbar">
+  <div class="topbar-in">
+    <!-- 진짜 링크다 — 랜딩은 별개 페이지라 JS 로 가로챌 이유가 없다 -->
+    <a class="tb-brand" href="app.html">School Radar</a>
+
+    <!-- 학교 검색 — 로고 바로 옆. 이 화면에서 사람이 하는 일이 결국 이것 하나라 늘 같은 자리에 둔다 -->
+    <div class="tb-search">
+      <div class="ac">
+        <svg class="lucide mag" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <label for="q" class="sr-only">학교 이름</label>
+        <input id="q" type="search" autocomplete="off" spellcheck="false"
+               role="combobox" aria-expanded="false" aria-controls="acList" aria-autocomplete="list"
+               placeholder="학교 목록을 불러오는 중…" disabled />
+        <div class="ac-list" id="acList" role="listbox" hidden></div>
+      </div>
+      <label for="year" class="sr-only">공시연도</label>
+      <select id="year" title="공시연도">
+        <option value="2026" selected>2026년</option>
+        <option value="2025">2025년</option>
+        <option value="2024">2024년</option>
+        <option value="2023">2023년</option>
+      </select>
+    </div>
+
+    <span class="sp"></span>
+    <button class="tb-theme" id="themeToggle" type="button" aria-pressed="false"
+            aria-label="화면 테마 전환">
+      <svg class="lucide i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      <svg class="lucide i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+    </button>
+    <a class="tb-link" href="vault.html" id="vaultLink">저장소</a>
+    <a class="leave" href="index.html">나가기</a>
+  </div>
+</header>
+
+<div class="wrap" id="tool">
+  <!-- ══════════ 고른 학교 — 화면의 제목 ══════════ -->
+  <div class="schoolhead" id="schoolHead" hidden>
+    <h1 id="headName"></h1>
+    <div class="meta" id="headMeta"></div>
+    <span class="sp"></span>
+    <button type="button" class="btn" id="reset">다른 학교</button>
+  </div>
+
+  <div class="status" id="loadStatus"></div>
+
+  <!-- ══════════ 이 학교 자료 ══════════
+       저장소에 들어간 파일을 여기서 바로 연다. 저장소 화면과 같은 카드를 쓰지만
+       역할이 다르다 — 저기는 전체 목록, 여기는 지금 보고 있는 학교 것만. -->
+  <div class="card" id="myfiles" hidden>
+    <h2>이 학교 자료 <small id="myfilesSum"></small>
+        <span class="acts">
+          <button type="button" class="btn sm" id="myfilesReveal">폴더 열기</button>
+          <a class="btn sm" id="myfilesMore" href="vault.html">저장소에서 열기</a>
+        </span></h2>
+    <div class="fgrid" id="fileGrid"></div>
+  </div>
+
+  <!-- ══════════ 공시 원문 파일 ══════════ -->
+  <div class="card" id="files" hidden>
+    <h2>공시 원문 파일 <small id="filesSub">OpenAPI에 없는 자료 — 학교알리미 공시 화면에서 바로 받아옵니다</small></h2>
+    <div class="picklist">
+      <!-- 항목은 학교급마다 다르다 — 초등엔 교과별 학업성취가 없고(공시 항목 자체가 없다),
+           자유학기제는 중학교에만 있다. 없는 항목을 화면에 두면 눌렀을 때 404 가 나고
+           원장은 그걸 '고장'으로 읽는다. 그래서 목록 전체를 JS 가 PICKS 에서 그린다. -->
+      <div id="pickRows"></div>
+      <div class="pickbar">
+        <button type="button" class="btn primary" id="grabAll">선택한 파일 받기</button>
+        <label class="all"><input type="checkbox" id="pickAll" checked /> 전체 선택</label>
+        <span class="sp"></span>
+        <span class="status" id="pickHint" style="margin:0">항목당 10초쯤 걸립니다 — 순서대로 받고, 학업성취는 중간에 숫자 확인창이 뜹니다.</span>
+      </div>
+    </div>
+
+    <div class="status" id="fileStatus"></div>
+  </div>
+
+  <!-- ══════════ 분석 리포트 ══════════
+       저장소에 모인 자료로 클로드코드를 돌려 PDF 를 만든다. 만들어진 PDF 는 저장소
+       화면에서 바로 열린다 — 파일이 프로젝트 폴더에 실제로 있기 때문에 가능한 일이다. -->
+  <div class="card" id="report" hidden>
+    <h2>분석 리포트 <small>저장소에 모인 자료로 클로드코드가 PDF 를 만듭니다</small></h2>
+    <div class="pickbar">
+      <button type="button" class="btn primary" id="makeReport">리포트 만들기</button>
+      <a class="btn" id="openReport" hidden target="_blank" rel="noopener">PDF 열기</a>
+      <button type="button" class="btn" id="stopReport" hidden>중단</button>
+      <span class="sp"></span>
+      <span class="status" id="reportState" style="margin:0"></span>
+    </div>
+    <details id="reportLogBox" hidden>
+      <summary>진행 기록</summary>
+      <pre id="reportLog"></pre>
+    </details>
+  </div>
+
+  <!-- ══════════ 결과 ══════════ -->
+  <div class="toolbar" id="resultBar" style="display:none">
+    <button type="button" class="btn primary" id="copyAll">전체 복사</button>
+    <span class="status" id="copyStatus"></span>
+    <span class="sp"></span>
+    <span class="hint">학교알리미는 <b>최근 3년치만</b> 공시합니다. 값이 비면 공시연도를 한 해 낮춰 보세요.</span>
+  </div>
+  <div id="result"><div class="card empty">학교 이름을 입력해 고르면 여기에 값이 나옵니다.</div></div>
+</div>
+
+<!-- 교과별 학업성취 확인 창 — 학교알리미가 보여주는 숫자 이미지를 그대로 옮겨 띄운다 -->
+<div class="modal" id="capModal" hidden>
+  <div class="box">
+    <h3 id="capTitle">교과별 학업성취 사항</h3>
+    <p>학교알리미 화면에 나오는 숫자입니다. 보이는 대로 입력해 주세요.</p>
+    <img class="cap" id="capImg" alt="확인 숫자" />
+    <input id="capInput" inputmode="numeric" autocomplete="off" placeholder="숫자 입력" />
+    <div class="msg" id="capMsg"></div>
+    <div class="acts">
+      <button type="button" class="btn" id="capCancel">취소</button>
+      <button type="button" class="btn primary" id="capOk">받기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 리포트 진행 상황 — 서랍의 「자세히」로 연다.
+     돌고 있는 클로드코드 세션이 지금 무엇을 읽고 무엇을 실행하는지 그대로 흘린다. -->
+<div class="modal" id="logModal" hidden>
+  <div class="box wide">
+    <h3 id="logTitle">리포트 진행 상황</h3>
+    <p id="logState"></p>
+    <pre id="logBody"></pre>
+    <div class="acts">
+      <a class="btn" id="logVault" href="vault.html">저장소에서 보기</a>
+      <span class="sp"></span>
+      <button type="button" class="btn" id="logClose">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 원본 필드 — 카드마다 오른쪽 끝 버튼으로 연다 -->
+<dialog class="raw" id="rawDlg">
+  <header>
+    <h3 id="rawTitle"></h3>
+    <span class="cnt" id="rawCnt"></span>
+    <span class="sp"></span>
+    <button type="button" class="btn" id="rawClose">닫기</button>
+  </header>
+  <div class="body" id="rawBody"></div>
+</dialog>
+
+<!-- 최근 기록 — 오른쪽에 항상 떠 있는다. 조회하거나 파일을 받은 학교가 쌓인다 -->
+<aside class="drawer" id="drawer" aria-label="최근 기록">
+  <!-- 손잡이 — 평소엔 이것만 화면 가장자리에 보인다. 올리면 서랍이 위로 미끄러져 나온다.
+       본문 레이아웃에는 관여하지 않는다(고정 위치 + transform). -->
+  <button type="button" class="handle" id="drawerHandle" aria-expanded="false"
+          aria-controls="drawerBody">최근 기록 <span class="n" id="drawerN"></span></button>
+  <div class="dbody" id="drawerBody">
+  <header>
+    <h3>최근 기록</h3>
+  </header>
+  <div class="list" id="drawerList"></div>
+  <footer>
+    <span class="storeinfo" id="storeInfo"></span>
+    <button type="button" class="btn sm" id="drawerClear">전체 지우기</button>
+  </footer>
+  </div>
+</aside>
+
+<script src="gate.js"></script>
+<script>
+/* 코드를 통과하지 않았으면 이 페이지는 열리지 않는다 — 랜딩으로 되돌린다.
+   히스토리에 남기지 않으려고 replace 를 쓴다. */
+if (!unlocked()) location.replace('index.html');
+</script>
+<script>
+/* ───────── 화면 테마 ─────────
+   <head> 에서 이미 data-theme 가 붙어 있다. 여기서는 버튼 모습을 그 값에 맞추고,
+   누를 때마다 뒤집어 브라우저에 남긴다 — 다음 방문에도 고른 대로 열린다. */
+(function(){
+  const btn  = document.getElementById('themeToggle');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const paint = t => {
+    document.documentElement.dataset.theme = t;
+    const light = t === 'light';
+    /* 해·달 아이콘 교체는 CSS 가 data-theme 를 보고 한다 — 여기선 안 건드린다 */
+    btn.setAttribute('aria-pressed', String(light));
+    btn.title = light ? '다크 테마로 전환' : '라이트 테마로 전환';
+    if (meta) meta.content = light ? '#ffffff' : '#17191c';
+  };
+  paint(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+  btn.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    try { localStorage.setItem('sr-theme', next); } catch (e) {}
+    paint(next);
+  });
+})();
+</script>
+<script>
+/* ───────── 가져올 공시 항목 (리포트에 쓰는 것만) ─────────
+   화면에 카드로 그리는 7개. 학교급과 무관하게 전부 내려온다(실측 확인). */
+const ITEMS = [
+  { t:'0',  key:'base',   name:'학교 기본정보' },
+  { t:'09', key:'stdnt',  name:'학년별·학급별 학생수' },
+  { t:'51', key:'enter',  name:'입학생 현황' },
+  { t:'10', key:'move',   name:'전·출입 현황' },
+  { t:'22', key:'teach',  name:'직위별 교원 현황' },
+  { t:'59', key:'after',  name:'방과후학교' },
+  { t:'56', key:'club',   name:'동아리 활동' },
+];
+
+/* 화면에는 안 그리고 openapi.json 에만 담는 항목 — 초·중 리포트가 쓴다.
+   (초등은 성적 분포가 없는 대신 수업시수·급식·도서관·상담 같은 생활 지표로 절을 채운다.)
+   화면 카드를 늘리지 않는 이유는 조회 화면의 목적이 '한눈에 보기' 이기 때문이다.
+   render() 는 아는 키만 꺼내 쓰므로 여기 늘려도 화면은 그대로다.
+
+   ※ apiType 은 공시항목 번호(4-나 같은 것)와 다른 축이다. 섞지 말 것. */
+const EXTRA_ITEMS = {
+  '02': [
+    { t:'08', key:'hours',   name:'수업일수 및 수업시수' },
+    { t:'62', key:'cls',     name:'학급별 학생수' },
+    { t:'63', key:'gender',  name:'학년별·성별 학생수' },
+    { t:'34', key:'meal',    name:'급식 실시 현황' },
+    { t:'38', key:'library', name:'학교도서관' },
+    { t:'61', key:'counsel', name:'상담 실시 현황' },
+    { t:'43', key:'safety',  name:'안전교육 실시 현황' },
+  ],
+  '03': [
+    { t:'08', key:'hours',   name:'수업일수 및 수업시수' },
+    { t:'62', key:'cls',     name:'학급별 학생수' },
+    { t:'63', key:'gender',  name:'학년별·성별 학생수' },
+  ],
+  '04': [],
+};
+/** 이 학교급에서 부를 OpenAPI 항목 전부 (화면용 + 저장용) */
+const itemsFor = kind => ITEMS.concat(EXTRA_ITEMS[String(kind)] || []);
+
+const KIND_NM = { '02':'초', '03':'중', '04':'고', '05':'특수' };
+
+/* ───────── 유틸 ───────── */
+const $ = s => document.querySelector(s);
+const num = v => (v === null || v === undefined || v === '') ? null : Number(String(v).replace(/[(),].*$/, '').replace(/,/g, ''));
+const fmt = v => (v === null || v === undefined || v === '' || Number.isNaN(v)) ? '—'
+                 : (typeof v === 'number' ? v.toLocaleString('ko-KR') : String(v));
+const won = v => (num(v) === null) ? '—' : num(v).toLocaleString('ko-KR') + '원';
+const pct = (a, b) => (!a || !b) ? '—' : (a / b * 100).toFixed(1) + '%';
+const ymd = v => { const s = String(v ?? ''); return /^\d{8}$/.test(s) ? `${s.slice(0,4)}. ${+s.slice(4,6)}. ${+s.slice(6,8)}.` : (s || '—'); };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* 학교알리미 OpenAPI 는 CORS 헤더(Access-Control-Allow-Origin)를 내려주지 않아서
+   브라우저가 직접 부르면 요청은 나가도 응답 본문을 읽을 수 없다(실측 확인).
+   그래서 같은 도메인의 서버리스 함수 /api/schoolinfo 가 대신 호출한다 —
+   같은 출처가 되므로 CORS 자체가 성립하지 않고, 인증키도 서버에만 있으면 된다. */
+async function callApi(params){
+  const qs = new URLSearchParams(params);
+  const res = await fetch(`/api/schoolinfo?${qs}`);
+  const json = await res.json();
+  if (json.resultCode !== 'success') throw new Error(json.resultMsg || '조회 실패');
+  return json.list || [];
+}
+
+/* ═════════ 학교 검색 ═════════
+   공시 목록 API 는 지역 단위로만 응답한다. 그래서 지역을 고르게 하는 대신,
+   전국 학교를 미리 훑어 만든 색인(schools.json)을 띄울 때 한 번 받아 두고
+   이름만으로 찾는다. 각 행에 시도·시군구·학교급 코드가 들어 있어서,
+   학교를 고르는 순간 공시 항목 조회에 필요한 값이 전부 갖춰진다.
+   행 구조: [학교명, 학교코드, 시도, 시군구, 학교급, 주소, 고교유형, 설립]  ← build-schools.js */
+let INDEX = [];
+let picked = null;
+const LAST_KEY = 'schoolradar.last';   // 마지막으로 보던 학교·연도
+
+const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+const norm = s => String(s).replace(/\s+/g, '').toLowerCase();
+/* '서울ㄷㅇ' 처럼 초성만 쳐도 찾히게 — 한 글자씩 초성으로 바꿔 둔 문자열도 같이 만들어 둔다. */
+const toCho = s => [...s].map(ch => {
+  const c = ch.charCodeAt(0) - 0xAC00;
+  return (c >= 0 && c < 11172) ? CHO[Math.floor(c / 588)] : ch;
+}).join('');
+
+(async function loadIndex(){
+  const st = $('#loadStatus');
+  try {
+    const res = await fetch('schools.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    INDEX = data.rows.map(r => {
+      const n = norm(r[0]);
+      return { nm:r[0], norm:n, cho:toCho(n), code:r[1], sido:r[2], sgg:r[3],
+               kind:r[4], addr:r[5], hs:r[6], fond:r[7], uuid:r[8] };
+    });
+    $('#q').disabled = false;
+    $('#q').placeholder = '학교 이름을 입력하세요 — 예: 휘문고, 대전고등학교, ㅎㅁㄱ';
+    st.innerHTML = `전국 <b class="ok">${INDEX.length.toLocaleString('ko-KR')}개교</b>를 이름만으로 찾을 수 있습니다.`;
+    /* 어느 학교를 열 것인가 —
+       ①주소의 ?school= (랜딩 레이더·저장소에서 넘어온 경우) → ②마지막으로 보던 학교.
+       ②가 있어야 저장소에 다녀와도 다시 검색할 필요가 없다. */
+    const want = new URLSearchParams(location.search).get('school');
+    let restore = null;
+    if (want) restore = { nm: want };
+    else { try { restore = JSON.parse(localStorage.getItem(LAST_KEY)); } catch {} }
+    if (restore && restore.nm) {
+      const hit = INDEX.find(x => x.nm === restore.nm);
+      if (hit) {
+        if (restore.year) $('#year').value = restore.year;
+        choose(hit);
+      }
+    }
+  } catch (e) {
+    $('#q').placeholder = '학교 목록을 불러오지 못했습니다';
+    st.innerHTML = `<b class="bad">학교 목록을 불러오지 못했습니다: ${esc(e.message)}</b> — 새로고침해 보세요.`;
+  }
+})();
+
+function search(qRaw){
+  const q = norm(qRaw);
+  if (!q) return [];
+  const isCho = /^[ㄱ-ㅎ]+$/.test(q);
+  const hits = [];
+  for (const s of INDEX) {
+    const at = (isCho ? s.cho : s.norm).indexOf(q);
+    if (at >= 0) hits.push({ s, at, len: s.nm.length });
+  }
+  // 앞에서 맞을수록 · 이름이 짧을수록 위로 (검색어와 가까운 학교가 먼저)
+  hits.sort((a, b) => a.at - b.at || a.len - b.len || a.s.nm.localeCompare(b.s.nm, 'ko'));
+  return hits;
+}
+
+let acRows = [], acIdx = -1;
+
+/* 공백을 지우고 찾은 위치라, 원래 이름에서는 글자 수를 되짚어 강조 구간을 찾는다. */
+function mark(nm, nq){
+  if (/^[ㄱ-ㅎ]+$/.test(nq)) return esc(nm);
+  const at = norm(nm).indexOf(nq);
+  if (at < 0) return esc(nm);
+  let seen = 0, s = -1, e = -1;
+  for (let i = 0; i < nm.length; i++) {
+    if (/\s/.test(nm[i])) continue;
+    if (seen === at) s = i;
+    if (seen === at + nq.length - 1) { e = i + 1; break; }
+    seen++;
+  }
+  return (s < 0 || e < 0) ? esc(nm)
+    : esc(nm.slice(0, s)) + '<mark>' + esc(nm.slice(s, e)) + '</mark>' + esc(nm.slice(e));
+}
+
+function renderAc(hits, q){
+  const box = $('#acList');
+  if (!hits.length) {
+    box.innerHTML = `<div class="ac-more">‘${esc(q)}’와 맞는 학교가 없습니다. 이름 일부만 입력해 보세요.</div>`;
+    acRows = []; acIdx = -1; open(true); return;
+  }
+  const shown = hits.slice(0, 50);
+  const nq = norm(q);
+  box.innerHTML = shown.map(({ s }, i) => `
+    <div class="ac-row${i === 0 ? ' on' : ''}" role="option" data-i="${i}">
+      <span class="tag k${s.kind}">${KIND_NM[s.kind] || ''}</span>
+      <span class="ac-name">${mark(s.nm, nq)}</span>
+      <span class="ac-addr">${esc(s.addr)}</span>
+    </div>`).join('')
+    + (hits.length > shown.length ? `<div class="ac-more">${hits.length - shown.length}개 더 있습니다 — 더 입력해 좁혀 보세요.</div>` : '');
+  acRows = shown.map(h => h.s); acIdx = 0;
+  open(true);
+}
+
+function open(v){ $('#acList').hidden = !v; $('#q').setAttribute('aria-expanded', String(!!v)); }
+function highlight(){
+  [...$('#acList').querySelectorAll('.ac-row')].forEach((el, i) => {
+    el.classList.toggle('on', i === acIdx);
+    if (i === acIdx) el.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+$('#q').addEventListener('input', e => {
+  const v = e.target.value.trim();
+  if (!v) { open(false); return; }
+  renderAc(search(v), v);
+});
+$('#q').addEventListener('focus', e => { if (e.target.value.trim() && acRows.length) open(true); });
+$('#q').addEventListener('keydown', e => {
+  if ($('#acList').hidden || !acRows.length) return;
+  if (e.key === 'ArrowDown') { acIdx = (acIdx + 1) % acRows.length; highlight(); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { acIdx = (acIdx - 1 + acRows.length) % acRows.length; highlight(); e.preventDefault(); }
+  else if (e.key === 'Enter') { if (acRows[acIdx]) { choose(acRows[acIdx]); e.preventDefault(); } }
+  else if (e.key === 'Escape') open(false);
+});
+$('#acList').addEventListener('mousedown', e => {   // blur 보다 먼저 잡아야 선택이 먹는다
+  const row = e.target.closest('.ac-row');
+  if (row) { e.preventDefault(); choose(acRows[+row.dataset.i]); }
+});
+document.addEventListener('click', e => { if (!e.target.closest('.ac')) open(false); });
+
+$('#reset').onclick = () => {
+  picked = null;
+  $('#schoolHead').hidden = true;
+  $('#myfiles').hidden = true;
+  $('#files').hidden = true;
+  $('#report').hidden = true;
+  clearInterval(reportPoll);
+  $('#fileStatus').textContent = '';
+  $('#q').value = ''; $('#q').focus();
+  try { localStorage.removeItem(LAST_KEY); } catch {}
+  document.title = 'School Radar · 학교 검색';
+  $('#result').innerHTML = '<div class="card empty">학교 이름을 입력해 고르면 여기에 값이 나옵니다.</div>';
+  $('#resultBar').style.display = 'none';
+  $('#loadStatus').innerHTML = `전국 <b class="ok">${INDEX.length.toLocaleString('ko-KR')}개교</b>를 이름만으로 찾을 수 있습니다.`;
+};
+
+/* 학교를 고르는 즉시 데이터를 가져온다 — 버튼을 한 번 더 누를 이유가 없다. */
+function choose(s){
+  if (!s) return;
+  picked = s;
+  open(false);
+  $('#q').value = s.nm;
+  // 검색 카드가 없어졌으니 고른 학교가 이 화면의 제목이다
+  $('#schoolHead').hidden = false;
+  $('#headName').textContent = s.nm;
+  $('#headMeta').innerHTML = [s.fond, s.hs, s.addr].filter(Boolean).map(esc).join(' · ');
+  document.title = `${s.nm} · School Radar`;
+  /* 저장소에 다녀와도 보던 학교가 그대로 있어야 한다 — 마지막으로 고른 학교를 남긴다 */
+  try { localStorage.setItem(LAST_KEY, JSON.stringify({ nm: s.nm, year: $('#year').value })); } catch {}
+  showFiles();
+  fetchData();
+}
+$('#year').addEventListener('change', () => {
+  if (!picked) return;
+  try { localStorage.setItem(LAST_KEY, JSON.stringify({ nm: picked.nm, year: $('#year').value })); } catch {}
+  showFiles(); fetchData();
+});
+
+/* ───────── 데이터 가져오기 ───────── */
+let lastRows = [];
+let fetchSeq = 0;
+
+async function fetchData(){
+  if (!picked) return;
+  const st = $('#loadStatus');
+  const seq = ++fetchSeq;                     // 연도를 빨리 바꿔도 늦게 온 응답이 화면을 덮지 않도록
+  const school = picked, year = $('#year').value;
+  st.textContent = `${school.nm} · ${year}년 공시 항목을 가져오는 중…`;
+
+  const common = { pbanYr: year, schulKndCode: school.kind, sidoCode: school.sido, sggCode: school.sgg };
+  const use = itemsFor(school.kind);          // 학교급마다 담는 항목이 다르다
+  const data = {}, missing = [];
+  for (const it of use) {
+    try {
+      const list = await callApi({ apiType: it.t, ...common });
+      if (seq !== fetchSeq) return;
+      const mine = list.find(r => r.SCHUL_CODE === school.code);
+      if (mine) data[it.key] = mine; else missing.push(it.name);
+    } catch (e) {
+      if (seq !== fetchSeq) return;
+      missing.push(`${it.name}(${e.message})`);
+    }
+  }
+  render(data, missing);
+  histTouch(school, year);                    // 조회한 학교는 오른쪽 기록에 남는다
+
+  /* 조회 = 자료수집 1단계다. 화면에 띄운 그 값을 그대로 저장소에 남겨 두면
+     클로드코드가 리포트를 만들 때 API 를 다시 부르지 않아도 된다. */
+  try {
+    await vaultMeta(school, year, { collectedAt: new Date().toISOString() });
+    await vaultPut(new Blob([JSON.stringify({
+      school: { nm: school.nm, code: school.code, sido: school.sido, sgg: school.sgg,
+                kind: school.kind, addr: school.addr, hs: school.hs, fond: school.fond },
+      year, fetchedAt: new Date().toISOString(),
+      items: use.map(it => ({ apiType: it.t, key: it.key, name: it.name })),
+      missing, data,
+    }, null, 2)], { type: 'application/json' }), 'openapi.json',
+      { nm: school.nm, year, kind: 'data', act: 'openapi', label: 'OpenAPI 수집 결과' });
+    renderStore();
+  } catch {}                                  // 저장소가 없어도 화면은 그대로 쓴다
+  markDownloaded();
+
+  st.innerHTML = `<b class="ok">완료</b> — ${esc(school.nm)} / ${year}년 공시`
+               + (missing.length ? ` · 미제공 ${missing.length}건` : '');
+}
+
+/* renderStore() 는 여기서 부르지 않는다 — 저장소 블록의 let vaultCache 가 아직 초기화되기
+   전이라(TDZ) 던진다. 그 블록이 다 정의된 뒤, 파일 아래쪽에서 부른다. */
+
+/* ═════════ 최근 기록 (오른쪽 서랍) ═════════
+   조회했거나 파일을 받은 학교를 쌓아 두고 다시 찾기 쉽게 한다.
+
+   이 목록만 localStorage 다 — '방금 뭘 보고 있었나'를 기억하는 용도라 브라우저에 둔다.
+   **받은 파일 자체는 여기 없다.** 그건 서버가 vault/ 폴더에 쓰고, 저장소 화면(vault.html)이
+   그 폴더를 보여 준다. 그래서 이 기록을 비워도 자료는 남고, 다른 브라우저로 열어도
+   저장소에는 그대로 있다. */
+const HIST_KEY = 'schoolradar.history';
+const HIST_MAX = 40;
+const histLoad = () => { try { return JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch { return []; } };
+const histSave = a => { try { localStorage.setItem(HIST_KEY, JSON.stringify(a.slice(0, HIST_MAX))); } catch {} };
+
+/* 같은 학교·같은 연도는 한 줄로 합치고 맨 위로 올린다. file 을 주면 받은 자료로 기록한다. */
+function histTouch(school, year, file){
+  const all = histLoad();
+  const key = `${school.nm}|${year}`;
+  const at = all.findIndex(r => r.key === key);
+  const rec = at >= 0 ? all.splice(at, 1)[0]
+                      : { key, nm: school.nm, addr: school.addr, kind: school.kind, year, files: [] };
+  rec.year = year; rec.at = Date.now();
+  if (file && !rec.files.includes(file)) rec.files.push(file);
+  all.unshift(rec);
+  histSave(all);
+  renderHist();
+}
+
+const ago = t => {
+  const m = Math.floor((Date.now() - t) / 60000);
+  if (m < 1) return '방금';
+  if (m < 60) return `${m}분 전`;
+  if (m < 1440) return `${Math.floor(m / 60)}시간 전`;
+  return `${Math.floor(m / 1440)}일 전`;
+};
+
+/* 기록 줄에 리포트 상태를 함께 보여 준다. 상태는 브라우저가 아니라 저장소(서버)가
+   알고 있으므로 목록을 한 번 받아 학교·연도로 맞춰 붙인다. 만드는 중이면 「자세히」로
+   그 세션의 진행 상황을 열 수 있다. */
+const REPORT_TAG = { running: '만드는 중', done: '완료', failed: '실패' };
+
+async function renderHist(){
+  const all = histLoad();
+  $('#drawerN').textContent = all.length || '';
+  if (!all.length) {
+    $('#drawerList').innerHTML = `<div class="empty">아직 없습니다.<br>학교를 조회하거나 파일을 받으면 여기에 쌓입니다.<br><br>
+       받은 파일은 <a href="vault.html">저장소</a> 폴더에 남습니다.</div>`;
+    return;
+  }
+  const v = await vaultList(true);
+  const byId = new Map((v.schools || []).map(s => [s.id, s]));
+
+  $('#drawerList').innerHTML = all.map((r, i) => {
+    const s = byId.get(vaultId(r.nm, r.year));
+    const st = s && s.report && s.report.status;
+    const tag = REPORT_TAG[st];
+    return `
+    <div class="rec" data-i="${i}">
+      <button type="button" class="recmain" data-go="${i}">
+        <span class="nm">${esc(r.nm)}${s && s.count ? `<span class="files" title="저장된 자료 ${s.count}건">${s.count}</span>` : ''}</span>
+        <span class="meta">${esc(r.year)}년 · ${esc(r.addr || '')} · ${ago(r.at)}</span>
+      </button>
+      ${tag ? `<span class="recbar">
+        <span class="rtag ${st}">${tag}</span>
+        <span class="sp"></span>
+        <button type="button" class="btn sm" data-log="${esc(vaultId(r.nm, r.year))}"
+                data-nm="${esc(r.nm)}">자세히</button>
+      </span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+/* ── 리포트 진행 상황 창 ──
+   서랍의 「자세히」로 연다. 돌고 있으면 3초마다 새로 받아 흘리고, 끝나면 멈춘다.
+   여기 보이는 줄은 api/report.js 가 클로드코드의 stream-json 을 사람이 읽게 줄인 것이다. */
+let logId = null, logPoll = null;
+
+async function drawLog(){
+  if (!logId) return;
+  let j = null;
+  try {
+    const r = await fetch(`/api/report?id=${encodeURIComponent(logId)}`);
+    if (r.ok) j = await r.json();
+  } catch {}
+  if (!j) { $('#logState').textContent = '상태를 읽지 못했습니다.'; return; }
+
+  const st = j.status || 'none';
+  $('#logState').innerHTML =
+      st === 'running' ? '<b>만드는 중</b> — 이 창을 닫아도 계속됩니다.'
+    : st === 'done'    ? '<b class="ok">완료</b> — 저장소의 out/ 에 PDF 가 있습니다.'
+    : st === 'failed'  ? `<b class="bad">실패</b> — ${esc((j.report && j.report.error) || '아래 기록을 보세요.')}`
+    : '아직 시작하지 않았습니다.';
+  $('#logBody').textContent = j.log || '(아직 출력이 없습니다)';
+  $('#logBody').scrollTop = $('#logBody').scrollHeight;
+
+  if (st !== 'running') { clearInterval(logPoll); logPoll = null; renderHist(); }
+}
+
+function openLog(id, nm){
+  logId = id;
+  $('#logTitle').textContent = `${nm || id} · 리포트 진행 상황`;
+  $('#logState').textContent = '읽는 중…';
+  $('#logBody').textContent = '';
+  $('#logVault').href = `vault.html?id=${encodeURIComponent(id)}`;
+  $('#logModal').hidden = false;
+  drawLog();
+  clearInterval(logPoll);
+  logPoll = setInterval(drawLog, 3000);
+}
+const closeLog = () => { $('#logModal').hidden = true; clearInterval(logPoll); logPoll = null; logId = null; };
+$('#logClose').onclick = closeLog;
+$('#logModal').addEventListener('mousedown', e => { if (e.target.id === 'logModal') closeLog(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#logModal').hidden) closeLog(); });
+
+/* 서랍 클릭 — 「자세히」는 진행 상황 창을 열고, 그 밖은 그 학교로 되돌아간다 */
+$('#drawerList').addEventListener('click', e => {
+  const log = e.target.closest('[data-log]');
+  if (log) { openLog(log.dataset.log, log.dataset.nm); return; }
+
+  const b = e.target.closest('.rec');
+  if (!b) return;
+  const r = histLoad()[+b.dataset.i];
+  if (!r) return;
+  const hit = INDEX.find(x => x.nm === r.nm);
+  if (!hit) { $('#loadStatus').innerHTML = `<b class="bad">${esc(r.nm)} 을(를) 색인에서 찾지 못했습니다.</b>`; return; }
+  $('#year').value = r.year;
+  choose(hit);
+});
+
+/* 분석 챗봇은 뺐다 — 위젯도 서버 쪽 api/chat.js 도 지웠다.
+   그게 Anthropic API 키를 쓰던 유일한 자리였다. */
+
+/* 터치 기기에는 hover 가 없다 — 손잡이를 누르면 열리고 다시 누르면 닫힌다.
+   마우스 사용자는 그냥 hover 로 열리므로 이 토글을 건드릴 일이 없다. */
+$('#drawerHandle').onclick = () => {
+  const d = $('#drawer'), on = d.classList.toggle('open');
+  $('#drawerHandle').setAttribute('aria-expanded', String(on));
+};
+document.addEventListener('click', e => {
+  if (!e.target.closest('#drawer')) {
+    $('#drawer').classList.remove('open');
+    $('#drawerHandle').setAttribute('aria-expanded', 'false');
+  }
+});
+
+$('#drawerClear').onclick = async () => {
+  /* 기록만 비운다. 저장소의 실제 파일은 건드리지 않는다 — 디스크에 있는 자료를
+     서랍 비우기 같은 가벼운 동작으로 지우면 안 된다. 지우려면 저장소 화면에서 학교별로. */
+  histSave([]); renderHist(); renderStore();
+  document.querySelectorAll('.pick .r').forEach(el => { el.textContent = ''; el.className = 'r'; });
+};
+
+
+/* ═════════ 공시 원문 파일 ═════════
+   OpenAPI 가 주지 않는 것을 /api/gongsi 가 학교알리미 공시 화면에서 받아다 내려 준다.
+
+   ── 학교급 분기 ──
+   학교알리미는 학교급마다 다른 항목을 공시한다. 실측(2026-09-08, 대치초·휘문중·휘문고):
+     · 교과별 학업성취(4-나) — 초등에는 공시항목 자체가 없다. 누르면 404 다
+     · 자유학기제(2-마)      — 중학교에만 있다
+     · 전·출입 표(3-나)      — 초·중은 표가 차 있는데 고교는 비어 있다(양재고·휘문고 확인).
+                                고교는 OpenAPI apiType 10 으로 같은 값을 받는다
+     · 졸업생 진로(KESS)     — 고등학교 행에만 진학처가 채워진다
+   그래서 목록을 학교급별로 갈라 둔다. lv 는 학교종류코드(02 초 · 03 중 · 04 고)를
+   이어 붙인 문자열이고, years 가 있으면 최근 N개년을 각각 한 행으로 편다. */
+const PICKS = [
+  { act:'rule',       lv:'234', t:'학업성적관리규정',
+    d:'학교가 올린 첨부 원본 · .hwp / .hwpx / .pdf' },
+  { act:'evalplan',   lv:'23',  t:'교과별 교수·학습 및 평가계획', multi:true,
+    d:{ '02':'<b>학년별 교과평가계획</b> 전수 — 단원별 평가 시기·방법 · .hwp',
+        '03':'전과목 평가운영계획 원본 · .hwp / .hwpx' } },
+  { act:'curriculum', lv:'234', t:'학교교육과정 편성·운영 및 평가',
+    d:{ '02':'학교교육계획 <b>책자</b> · 대개 .pdf — 시수 편제표는 이 안에 있다',
+        '03':'<b>시수 편제표</b>가 든 계획서 원본 · .xlsx / .hwpx / .pdf',
+        '04':'<b>학점편제표</b>가 든 계획서 원본 · .hwpx / .hwp / .pdf' } },
+  { act:'achieve',    lv:'34',  t:'교과별 학업성취 사항', years:3, captcha:true,
+    d:'과목별 평균 · 성취도(A~E) 분포 · .xls' },
+  { act:'move',       lv:'23',  t:'전·출입 및 학업중단 학생 수', years:3,
+    d:'학년별 전입·전출 + <b>구/시도/전국 비교</b> · .xls' },
+  { act:'paps',       lv:'2',   t:'학생의 체력 증진 (PAPS)', years:3,
+    d:'학년·성별 <b>1~5등급 분포</b> + 구/시도/전국 비교 · .xls — 초4부터' },
+  { act:'paps',       lv:'3',   t:'학생의 체력 증진 (PAPS)',
+    d:'학년·성별 1~5등급 분포 + 구/시도/전국 비교 · .xls' },
+  { act:'enter',      lv:'23',  t:'입학생 현황',
+    d:{ '02':'적령·조기입학·유예 + <b>구/시도/전국 평균 입학생수</b> · .xls',
+        '03':'입학 구분별 인원 + 구/시도/전국 평균 입학생수 · .xls' } },
+  { act:'roster',     lv:'23',  t:'학년별·학급별 학생수',
+    d:'반별 남녀 인원 전수 · .xls' },
+  { act:'hours',      lv:'23',  t:'수업일수 및 수업시수',
+    d:'학년별 수업일수 · 주당 시수 + 구/시도/전국 비교 · .xls' },
+  { act:'freesem',    lv:'3',   t:'자유학기제 운영',
+    d:'운영학기 · 자유학기활동 영역별 시수 · .xls — 중학교만' },
+  { act:'special',    lv:'23',  t:'교육운영 특색사업',
+    d:'자율학교 · 수준별 수업 운영 여부 + 구/시도/전국 비율 · .xls' },
+  { act:'library',    lv:'2',   t:'학교도서관 현황',
+    d:'1인당 장서·대출 + 구/시도/전국 비교 · .xls' },
+  { act:'counsel',    lv:'2',   t:'학생·학부모 상담',
+    d:'Wee클래스 · 상담 실적 + 구/시도/전국 비교 · .xls' },
+  { act:'meal',       lv:'2',   t:'급식 실시 현황',
+    d:'운영방식 · 인력 + 구/시도/전국 비교 · .xls' },
+  { act:'club',       lv:'234', t:'동아리 활동 현황',
+    d:'창체·자율 동아리 표 전체 · .xls' },
+  { act:'advance',    lv:'4',   t:'졸업생 진로 · 학교 규모 추이 · 최근 3개년',
+    d:'진학·<b>기타율(≈재수)</b>·학생수·교원 3개년 + 지역 평균 · .csv (KESS)' },
+];
+
+const LV_NAME = { '02': '초등학교', '03': '중학교', '04': '고등학교' };
+/* 이 학교급에서 받을 항목만 고른다. kind 를 모르면(옛 색인) 고교로 본다.
+   lv 는 학교종류코드의 끝자리를 이어 붙인 것 — '234' 는 초·중·고 전부, '23' 은 초·중만.
+   코드 전체를 이어 붙이면 안 된다: '0234'.includes('03') 는 false 라 조용히 어긋난다. */
+const picksFor = kind => PICKS.filter(p => p.lv.includes(String(kind || '04').slice(-1)));
+
+function showFiles(){
+  if (!picked) return;
+  $('#files').hidden = !picked.uuid;          // uuid 가 없는 학교는 원문을 열 수 없다
+  $('#fileStatus').textContent = '';
+
+  const y = +$('#year').value;
+  const kind = String(picked.kind || '04');
+  const desc = p => (typeof p.d === 'string' ? p.d : (p.d[kind] || ''));
+
+  $('#pickRows').innerHTML = picksFor(kind).map(p => {
+    // years 가 있으면 최근 N개년을 각각 한 행으로 — 학교알리미가 연도마다 따로 공시한다
+    const years = p.years ? Array.from({ length: p.years }, (_, i) => y - i) : [null];
+    return years.map(v => {
+      const key = v === null ? p.act : `${p.act}-${v}`;
+      const lock = p.captcha ? ' <span class="lock">숫자 입력 필요</span>' : '';
+      return `
+      <label class="pick">
+        <input type="checkbox" data-act="${p.act}" ${v === null ? '' : `data-year="${v}"`} checked />
+        <span class="txt">
+          <span class="t">${p.t}${v === null ? '' : ` · ${v}년`}${lock}</span>
+          <span class="d">${desc(p)}</span>
+        </span>
+        <span class="r" data-r="${key}"></span>
+      </label>`;
+    }).join('');
+  }).join('');
+
+  $('#filesSub').innerHTML = `${LV_NAME[kind] || '고등학교'} 공시 기준 `
+    + `<b>${document.querySelectorAll('#pickRows .pick').length}개 항목</b> — `
+    + `학교알리미 공시 화면에서 바로 받아옵니다`;
+
+  document.querySelectorAll('.pick input[data-act]').forEach(b => b.addEventListener('change', syncPickAll));
+  syncPickAll();
+  markDownloaded();
+}
+
+/* 이미 저장소에 있는 항목은 오른쪽에 '저장됨' 을 미리 켜 둔다 — 브라우저 기록이 아니라
+   실제 폴더를 보므로, 다른 브라우저로 열어도·기록을 지워도 그대로 보인다. */
+async function markDownloaded(){
+  if (!picked) return;
+  const school = picked.nm, year = $('#year').value;
+  const keys = await vaultDone(school, year);
+  if (picked.nm !== school || $('#year').value !== year) return;   // 그새 학교가 바뀌었으면 버린다
+  for (const b of document.querySelectorAll('.pick input[data-act]')) {
+    const key = pickKey(b.dataset.act, b.dataset.year);
+    if (keys.has(key)) pickRow(key, '저장됨', 'ok done');
+  }
+  renderReportBar();
+  renderFileGrid();
+}
+
+/* 파일을 다운로드 폴더로 내려 주는 옛 경로. 이제 기본은 저장소에 쓰는 것이고,
+   이건 저장소가 안 붙었을 때(정적으로 열었을 때)의 대비책으로만 남는다. */
+function saveBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+function nameFrom(res, fallback){
+  const m = (res.headers.get('content-disposition') || '').match(/filename\*=UTF-8''([^;]+)/i);
+  try { return m ? decodeURIComponent(m[1]) : fallback; } catch { return fallback; }
+}
+const fstat = (html) => { $('#fileStatus').innerHTML = html; };
+
+/* 파일이면 저장소에 넣고, JSON 이면 (서버가 이유를 담아 보낸) 오류 메시지 */
+async function takeFile(res, fallback, opts){
+  if ((res.headers.get('content-type') || '').includes('application/json')) {
+    const j = await res.json();
+    throw new Error(j.error || '받지 못했습니다.');
+  }
+  await keep(await res.blob(), nameFrom(res, fallback), opts);
+}
+
+/* ═════════ 받은 파일 보관 (저장소 폴더) ═════════
+   전에는 IndexedDB 였다. 브라우저 안에만 있어서 클로드코드가 못 읽고, 기기를 옮기면
+   사라지고, 200MB 상한에 걸리면 오래된 것부터 버려야 했다. 이제는 서버(api/vault.js)가
+   프로젝트의 vault/ 폴더에 그대로 쓴다 — 웹이 저장한 파일을 클로드코드가 읽어 리포트를
+   만들고, 만든 PDF 를 다시 이 화면이 보여 준다. 상한도 만료도 없다(디스크가 곧 한도다).
+
+     vault/{학교명}_{공시연도}/raw · data · out
+
+   학교알리미는 응답에 no-store 를 걸어 두어 브라우저가 파일을 들고 있지 않는다.
+   그래서 같은 자료를 다시 받으면 사이트에 또 붙어 10초쯤 걸리고, 학업성취는 숫자
+   확인창까지 다시 뜬다. 저장소에 이미 있으면 그 단계를 통째로 건너뛴다. */
+const mb = b => b >= 1048576 ? (b / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(b / 1024)) + 'KB';
+
+/* 폴더 이름 규칙은 서버(api/vault.js 의 folderId)와 같아야 한다 — 양쪽이 어긋나면
+   웹이 저장한 곳과 클로드코드가 읽는 곳이 달라진다. */
+const vaultId = (nm, year) =>
+  `${String(nm).replace(/[\/:*?"<>|]/g, '_').trim().slice(0, 180)}_${String(year).replace(/\D/g, '')}`;
+
+let vaultCache = null;                       // 마지막으로 받아 온 저장소 목록
+
+async function vaultList(force){
+  if (vaultCache && !force) return vaultCache;
+  try {
+    const r = await fetch('/api/vault');
+    if (!r.ok) throw new Error('저장소를 읽지 못했습니다');
+    return (vaultCache = await r.json());
+  } catch {
+    return (vaultCache = { schools: [], count: 0, bytes: 0, offline: true });
+  }
+}
+
+/** 지금 고른 학교·연도의 저장소 상세 */
+async function vaultOne(nm, year){
+  try {
+    const r = await fetch(`/api/vault?id=${encodeURIComponent(vaultId(nm, year))}`);
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+
+/* 이미 저장소에 있는 항목의 체크박스 키(club · rule · curriculum · advance · achieve-2025 …).
+   meta 에 남긴 act/label 로 되짚는다 — 파일명은 학교마다 달라 믿을 수 없다. */
+async function vaultDone(nm, year){
+  const v = await vaultOne(nm, year);
+  const keys = new Set();
+  if (!v || !v.files) return keys;
+  for (const f of Object.values(v.files)) {
+    if (!f || !f.act) continue;
+    /* 연도별로 따로 공시되는 항목(achieve · move · paps)은 라벨 끝에 'NNNN년' 이 붙는다.
+       그게 곧 체크박스 키다. 없으면 act 자체가 키. */
+    const m = String(f.label || '').match(/(\d{4})년\s*$/);
+    keys.add(m ? `${f.act}-${m[1]}` : f.act);
+  }
+  return keys;
+}
+
+/** 파일 한 개를 저장소에 넣는다. 실패해도 받는 흐름은 멈추지 않는다. */
+async function vaultPut(blob, name, { nm, year, kind = 'raw', act, label }){
+  const qs = new URLSearchParams({ id: vaultId(nm, year), kind, name, year: String(year) });
+  if (act) qs.set('act', act);
+  if (label) qs.set('label', label);
+  const r = await fetch(`/api/vault?${qs}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream' },
+    body: blob,
+  });
+  if (!r.ok) {
+    let msg = '저장소에 쓰지 못했습니다';
+    try { msg = (await r.json()).error || msg; } catch {}
+    throw new Error(msg);
+  }
+  vaultCache = null;                          // 목록이 바뀌었다
+  return r.json();
+}
+
+/** 학교 식별자를 meta 에 남긴다 — 클로드코드가 어느 학교인지 알아야 한다 */
+async function vaultMeta(s, year, patch){
+  try {
+    await fetch(`/api/vault?id=${encodeURIComponent(vaultId(s.nm, year))}&meta=1`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        school: { nm: s.nm, code: s.code, sido: s.sido, sgg: s.sgg, kind: s.kind,
+                  addr: s.addr, hs: s.hs, fond: s.fond, uuid: s.uuid },
+        year: String(year), ...(patch || {}),
+      }),
+    });
+    vaultCache = null;
+  } catch {}
+}
+
+/* 받은 파일을 저장소에 넣는다. 예전 keep() 자리 — 이름을 그대로 둬서 호출부는 안 바뀐다. */
+async function keep(blob, name, opts){
+  const r = await vaultPut(blob, name, opts);
+  renderStore();
+  return r;
+}
+
+/* ── 이 학교 자료 (드라이브식 카드) ──
+   저장소에 들어간 파일을 여기서 바로 연다. 무엇이 이미 있는지 훑는 게 목적이라
+   표가 아니라 카드로 깐다. 클릭하면 새 탭 — PDF·CSV·JSON 은 브라우저가 바로 열고
+   .xls·.hwp 는 내려받는다(서버가 확장자를 보고 inline/attachment 를 정한다). */
+const EXT_OF = n => (String(n).split('.').pop() || '').toLowerCase();
+const EXT_CLASS = e => ['pdf','xls','xlsx','hwp','hwpx','json','csv','md'].includes(e)
+  ? ({ xlsx:'xls', hwpx:'hwp' }[e] || e) : '';
+const KIND_LABEL = { raw: '공시 원문', data: '수집 데이터', out: '리포트' };
+
+function fileCard(id, rel, f){
+  const name = rel.slice(rel.indexOf('/') + 1);
+  const kind = rel.slice(0, rel.indexOf('/'));
+  const ext  = EXT_OF(name);
+  const url  = `/vault/${encodeURIComponent(id)}/${rel.split('/').map(encodeURIComponent).join('/')}`;
+  // 저장소 화면의 카드와 같은 순서다 — [배지 + 파일 이름] → 라벨·크기.
+  return `<a class="fcard${kind === 'out' && ext === 'pdf' ? ' isreport' : ''}" href="${url}"
+             target="_blank" rel="noopener" title="${esc(name)}">
+    <span class="top">
+      <span class="ext ${EXT_CLASS(ext)}">${esc(ext.slice(0, 4).toUpperCase())}</span>
+      <span class="nm">${esc(name)}</span>
+    </span>
+    <span class="lbl">${esc(f.label || KIND_LABEL[kind] || kind)}</span>
+    <span class="foot">${mb(f.size || 0)}<span class="sp"></span>${esc(KIND_LABEL[kind] || kind)}</span>
+  </a>`;
+}
+
+/* out(리포트) → raw(원문) → data(수집) 순. 결과물이 맨 앞에 오는 게 자연스럽다. */
+const KIND_ORDER = { out: 0, raw: 1, data: 2 };
+const sortFiles = files => Object.entries(files).sort((a, b) => {
+  const ka = a[0].split('/')[0], kb = b[0].split('/')[0];
+  return (KIND_ORDER[ka] ?? 9) - (KIND_ORDER[kb] ?? 9) || a[0].localeCompare(b[0], 'ko');
+});
+
+async function renderFileGrid(){
+  const box = $('#myfiles');
+  if (!picked) { box.hidden = true; return; }
+  const school = picked.nm, year = $('#year').value;
+  const v = await vaultOne(school, year);
+  if (picked.nm !== school || $('#year').value !== year) return;   // 그새 학교가 바뀌었으면 버린다
+  if (!v || !v.count) { box.hidden = true; return; }
+  const rows = sortFiles(v.files);
+  $('#myfilesSum').textContent = `${rows.length}개 · ${mb(v.bytes)}`;
+  $('#myfilesMore').href = `vault.html?id=${encodeURIComponent(v.id)}`;
+  $('#myfilesReveal').dataset.id = v.id;
+  $('#fileGrid').innerHTML = rows.map(([rel, f]) => fileCard(v.id, rel, f)).join('');
+  box.hidden = false;
+}
+
+/* 저장소 요약 — 막대의 「저장소」 링크에 붙인다.
+   서랍이 없어졌으니 이 숫자가 갈 곳은 링크뿐이다. 몇 개교 분이 쌓였는지가
+   보이면 저장소를 열어 볼 이유가 생긴다. */
+async function renderStore(){
+  const link = $('#vaultLink'), foot = $('#storeInfo');
+  const v = await vaultList(true);
+  if (v.offline) {
+    if (link) { link.textContent = '저장소 —'; link.title = '저장소에 연결하지 못했습니다 (node dev.js 로 실행하세요)'; }
+    if (foot) foot.textContent = '저장소 연결 안 됨';
+    return;
+  }
+  if (link) {
+    link.textContent = v.count ? `저장소 ${v.count}` : '저장소';
+    link.title = v.count ? `${v.count}개교 · ${mb(v.bytes)}` : '아직 받은 자료가 없습니다';
+  }
+  if (foot) foot.textContent = v.count ? `저장소 ${v.count}개교 · ${mb(v.bytes)}` : '저장소 비어 있음';
+}
+
+/* 탐색기에서 이 학교 폴더 열기 — 브라우저는 로컬 경로를 못 여니 서버가 대신 띄운다 */
+$('#myfilesReveal').onclick = async e => {
+  const id = e.currentTarget.dataset.id;
+  if (!id) return;
+  try { await fetch(`/api/vault?id=${encodeURIComponent(id)}&reveal=1`, { method: 'POST' }); } catch {}
+};
+
+renderStore();          // 이 블록의 const·let 이 전부 초기화된 뒤라야 안전하다
+renderHist();
+
+/* ═════════ 분석 리포트 ═════════
+   서버(api/report.js)가 `claude -p` 를 띄워 docs/분석리포트_작업설명서.md 대로 만들게 하고,
+   결과 PDF 를 vault/{학교}_{연도}/out/ 에 넣는다. 여기서는 시작시키고 상태만 지켜본다.
+   몇 분 걸리는 일이라 진행 상황을 보여 주지 않으면 멈춘 것처럼 보인다. */
+let reportPoll = null;
+
+function reportPaint(st){
+  const box = $('#report');
+  const state = $('#reportState'), open = $('#openReport'), stop = $('#stopReport'), go = $('#makeReport');
+  const running = st.status === 'running';
+  go.hidden = running;
+  stop.hidden = !running;
+  go.disabled = false;
+  go.textContent = st.status === 'done' ? '다시 만들기' : '리포트 만들기';
+
+  const pdf = (st.report && st.report.pdf) || null;
+  open.hidden = !pdf;
+  if (pdf && picked) open.href = `/vault/${encodeURIComponent(vaultId(picked.nm, $('#year').value))}/${pdf.split('/').map(encodeURIComponent).join('/')}`;
+
+  state.innerHTML =
+      running          ? '만드는 중… 몇 분 걸립니다. 이 창을 닫아도 계속됩니다.'
+    : st.status === 'done'   ? '<b class="ok">완료</b> — 저장소의 out/ 에 있습니다.'
+    : st.status === 'failed' ? `<b class="bad">실패</b> — ${esc((st.report && st.report.error) || '진행 기록을 보세요.')}`
+    : '저장소에 모인 자료로 만듭니다.';
+
+  if (st.log) {
+    $('#reportLogBox').hidden = false;
+    $('#reportLog').textContent = st.log;
+  }
+  box.hidden = false;
+}
+
+async function reportStatus(){
+  if (!picked) return null;
+  try {
+    const r = await fetch(`/api/report?id=${encodeURIComponent(vaultId(picked.nm, $('#year').value))}`);
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+
+/* 돌고 있는 동안만 짧게 물어본다 — 끝나면 스스로 멈춘다 */
+function reportWatch(){
+  clearInterval(reportPoll);
+  reportPoll = setInterval(async () => {
+    const st = await reportStatus();
+    if (!st) { clearInterval(reportPoll); return; }
+    reportPaint(st);
+    if (st.status !== 'running') { clearInterval(reportPoll); renderStore(); renderFileGrid(); }
+  }, 3000);
+}
+
+/** 학교를 고르거나 파일을 받은 뒤 — 자료가 있으면 리포트 카드를 띄운다 */
+async function renderReportBar(){
+  if (!picked) { $('#report').hidden = true; return; }
+  const v = await vaultOne(picked.nm, $('#year').value);
+  if (!v || !v.count) { $('#report').hidden = true; return; }
+  const st = await reportStatus();
+  reportPaint(st || { status: (v.report && v.report.status) || 'none', report: v.report });
+  if (st && st.status === 'running') reportWatch();
+}
+
+$('#makeReport').onclick = async () => {
+  if (!picked) return;
+  const go = $('#makeReport');
+  go.disabled = true; go.textContent = '시작하는 중…';
+  try {
+    const r = await fetch(`/api/report?id=${encodeURIComponent(vaultId(picked.nm, $('#year').value))}`,
+                          { method: 'POST' });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || '시작하지 못했습니다.');
+    reportPaint({ status: 'running', log: j.log || '' });
+    reportWatch();
+  } catch (e) {
+    reportPaint({ status: 'failed', report: { error: e.message } });
+  }
+};
+
+$('#stopReport').onclick = async () => {
+  if (!picked) return;
+  await fetch(`/api/report?id=${encodeURIComponent(vaultId(picked.nm, $('#year').value))}`, { method: 'DELETE' });
+  clearInterval(reportPoll);
+  reportPaint(await reportStatus() || { status: 'failed', report: { error: '중단됨' } });
+};
+
+/* ═════════ 졸업생 진로 현황 (KESS) ═════════
+   진학·재수 숫자는 학교알리미 공시에도 NEIS 개방포털에도 없다. 원천은 교육기본통계
+   (교육부 조사 · 한국교육개발원 수행, 매년 4/1 기준)이고 KESS 가 전국 한 파일(18MB)로만
+   내주기 때문에, build-kess.js 가 미리 훑어 만든 kess.json 을 읽어 여기서 표를 만든다.
+   서버를 타지 않으므로 즉시 끝난다. */
+let KESS = null;
+async function loadKess(){
+  if (KESS) return KESS;
+  const res = await fetch('kess.json');
+  if (!res.ok) throw new Error('진로 현황 자료를 불러오지 못했습니다 (kess.json)');
+  return (KESS = await res.json());
+}
+
+/* 학교알리미와 KESS 는 서로 다른 기관의 명부라 '시도' 표기가 어긋난다(강원/강원도, 전남광주…).
+   그래서 이름으로 먼저 좁히고, 같은 이름이 여럿일 때만 행정구로 가른다. */
+function findKess(k, s){
+  const hit = k.schools.filter(r => r[0] === s.nm);
+  if (hit.length <= 1) return hit[0] || null;
+  const sgg = String(s.addr || '').split(/\s+/)[1] || '';
+  return hit.find(r => r[2] === sgg) || null;
+}
+
+const CSVQ = v => {
+  const t = String(v ?? '');
+  return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+};
+const csvLine = a => a.map(CSVQ).join(',');
+/* 화면용 pct 는 '52.2%' 문자열을 주지만, 표에는 숫자로 들어가야 엑셀이 계산할 수 있다. */
+const ratio = (a, b) => (b ? +(a / b * 100).toFixed(1) : 0);
+
+async function grabAdvance(){
+  const k = await loadKess(), s = picked;
+  const me = findKess(k, s);
+  if (!me) throw new Error('이 학교는 교육기본통계 명부에 없습니다 (신설·분교·폐교일 수 있습니다)');
+
+  const [nm, sido, sgg, type, byYear] = me;
+  const C = Object.fromEntries(k.cols.map((c, i) => [c, i]));   // grad, adv, advRate, emp, mil, etc, …
+  const L = [];
+
+  L.push(csvLine([`졸업생 진로 · 학교 규모 — ${nm}`]));
+  L.push(csvLine(['지역', `${sido} ${sgg}`, '유형', type]));
+  L.push(csvLine(['출처', k.source]));
+  L.push(csvLine(['비고', k.note]));
+  L.push(csvLine(['색인 생성일', k.built]));
+  L.push('');
+
+  /* [1] 대상 학교 3개년 — 08절 페이지 A 의 표 그대로 */
+  L.push(csvLine([`[1] ${nm} — 최근 3개년`]));
+  L.push(csvLine(['졸업', '졸업자', '진학자', '진학률(%)', '국내대학', '국내전문대', '국외',
+                  '취업', '입대', '기타', '기타율(%)', '검산']));
+  k.years.forEach((y, i) => {
+    const v = byYear[i];
+    if (!v) { L.push(csvLine([`${y}. 2.`, '자료 없음'])); return; }
+    const grad = v[C.grad], sum = v[C.adv] + v[C.emp] + v[C.mil] + v[C.etc];
+    // 진학률 칸이 0 이면 미기재다 — 문서 §1-A 검산 ② 대로 다시 나누고 그렇게 밝힌다.
+    const rate = v[C.advRate] || ratio(v[C.adv], grad);
+    L.push(csvLine([`${y}. 2.`, grad, v[C.adv], rate + (v[C.advRate] ? '' : ' (재계산치)'),
+                    v[C.colK], v[C.jcolK], v[C.colF] + v[C.jcolF],
+                    v[C.emp], v[C.mil], v[C.etc], ratio(v[C.etc], grad),
+                    sum === grad ? 'OK' : `합계 불일치 ${sum} ≠ ${grad}`]));
+  });
+  L.push('');
+  L.push(csvLine(['※ 취업·입대가 0 에 가까우면 기타 ≈ N수(재수) 규모로 읽는다.']));
+  L.push('');
+
+  /* [2] 같은 구 고교 — 페이지 B 비교군을 여기서 고른다 */
+  const yLatest = 0;
+  const peers = k.schools
+    .filter(r => r[1] === sido && r[2] === sgg && r[4][yLatest])
+    .sort((a, b) => b[4][yLatest][C.grad] - a[4][yLatest][C.grad]);
+  L.push(csvLine([`[2] ${sido} ${sgg} 고교 — ${k.years[yLatest]}. 2. 졸업 기준 (비교군 후보)`]));
+  L.push(csvLine(['학교', '유형', '졸업자', '진학자', '진학률(%)', '기타', '기타율(%)']));
+  for (const r of peers) {
+    const v = r[4][yLatest];
+    L.push(csvLine([r[0], r[3], v[C.grad], v[C.adv], v[C.advRate] || ratio(v[C.adv], v[C.grad]),
+                    v[C.etc], ratio(v[C.etc], v[C.grad])]));
+  }
+  L.push('');
+
+  /* [3] 집계 낙차 — 페이지 B 의 가로 막대 4줄 */
+  L.push(csvLine(['[3] 기타율 낙차 — 학교 → 구 → 시도 → 전국 (일반고+자율고만 합산)']));
+  L.push(csvLine(['졸업', '구분', '졸업자', '진학자', '진학률(%)', '기타', '기타율(%)', '학교수']));
+  k.years.forEach((y, i) => {
+    const agg = k.agg[y] || {};
+    const mine = byYear[i];
+    const rows = [
+      mine ? [nm, mine[C.grad], mine[C.adv], mine[C.advRate] || ratio(mine[C.adv], mine[C.grad]),
+              mine[C.etc], ratio(mine[C.etc], mine[C.grad]), 1] : null,
+      ...[[`${sgg} 평균`, agg[`${sido}|${sgg}`]], [`${sido} 평균`, agg[sido]], ['전국 평균', agg['전국']]]
+        .map(([label, a]) => a ? [label, a[C.grad], a[C.adv], a[C.advRate],
+                                 a[C.etc], ratio(a[C.etc], a[C.grad]), a[a.length - 1]] : null),
+    ].filter(Boolean);
+    for (const r of rows) L.push(csvLine([`${y}. 2.`, ...r]));
+  });
+  L.push('');
+
+  /* [4] 학교 규모·교원 3개년 — 03절 모수. 학교알리미도 주지만 거긴 당해연도 한 장뿐이라
+         추세가 안 보인다. 같은 파일에 이미 들어 있어 함께 뽑아 둔 열이다. */
+  L.push(csvLine([`[4] ${nm} — 학교 규모·교원 3개년`]));
+  L.push(csvLine(['조사', '학생수', '1학년', '2학년', '3학년', '학급수', '학급당 학생수',
+                  '교원수', '기간제', '교원1인당 학생수', '전출', '전입', '순전입', '입학자']));
+  k.years.forEach((y, i) => {
+    const v = byYear[i];
+    if (!v) { L.push(csvLine([`${y}. 4.`, '자료 없음'])); return; }
+    L.push(csvLine([`${y}. 4.`, v[C.stu], v[C.g1], v[C.g2], v[C.g3], v[C.cls], v[C.perCls],
+                    v[C.tch], v[C.tchTmp], v[C.perTch], v[C.out], v[C.in], v[C.in] - v[C.out], v[C.enter]]));
+  });
+  // 같은 해 구 평균을 학교당으로 환산해 한 줄 붙인다 — '큰 학교인지'가 바로 읽힌다
+  const a0 = (k.agg[k.years[0]] || {})[`${sido}|${sgg}`], n0 = a0 && a0[a0.length - 1];
+  if (n0) L.push(csvLine([`${k.years[0]}. 4. ${sgg} 학교당 평균`,
+                          Math.round(a0[C.stu] / n0), '', '', '',
+                          Math.round(a0[C.cls] / n0), a0[C.perCls],
+                          Math.round(a0[C.tch] / n0), '', a0[C.perTch], '', '', '', '']));
+  L.push('');
+  L.push(csvLine(['※ 학생수·교원은 4/1 조사 시점. 졸업 후 상황([1])만 직전 2월 졸업생 기준이다.']));
+
+  // 엑셀이 UTF-8 을 알아보게 BOM 을 붙인다 — 없으면 한글이 깨진 채로 열린다.
+  // 학교알리미가 아니라 우리가 만든 표라 raw 가 아니라 data 로 넣는다.
+  await keep(new Blob(['﻿' + L.join('\r\n')], { type: 'text/csv;charset=utf-8' }),
+             `졸업생진로_학교규모_${nm}_KESS.csv`,
+             { nm: s.nm, year: $('#year').value, kind: 'data', act: 'advance',
+               label: '졸업생 진로 · 학교 규모' });
+}
+
+/* ── 선택한 항목을 한 번에 ──
+   셋을 동시에 쏘면 학교알리미 쪽에 같은 순간 세 세션이 붙는다. 서버 함수는 항목마다
+   상세페이지를 새로 열고(세션 쿠키) 첨부를 받아오는 구조라, 순서대로 하나씩 돌린다.
+   한 항목이 실패해도 나머지는 계속 간다 — 학교마다 없는 항목이 있기 때문. */
+/* 이름과 키는 PICKS 카탈로그 하나에서 나온다 — 항목을 늘릴 때 고칠 데가 한 곳이어야 한다.
+   같은 act 가 학교급별로 두 줄인 경우(paps)는 이름이 같으니 첫 줄을 쓴다. */
+const pickName = act => (PICKS.find(p => p.act === act) || {}).t || act;
+const pickLabel = (act, year) => (year ? `${pickName(act)} ${year}년` : pickName(act));
+const pickKey = (act, year) => (year ? `${act}-${year}` : act);
+
+function pickRow(key, text, cls){
+  const el = document.querySelector(`.r[data-r="${key}"]`);
+  if (el) { el.textContent = text; el.className = 'r' + (cls ? ' ' + cls : ''); }
+}
+
+async function grabPicked(){
+  const btn = $('#grabAll');
+  const boxes = [...document.querySelectorAll('.pick input[data-act]')].filter(b => b.checked);
+  if (!picked) return;
+  if (!boxes.length) { fstat('<b class="bad">받을 항목을 하나 이상 선택하세요.</b>'); return; }
+
+  const y = $('#year').value, s = picked;
+  const label = btn.textContent;
+  btn.disabled = true;
+  boxes.forEach(b => pickRow(pickKey(b.dataset.act, b.dataset.year), '대기 중', ''));
+
+  // 학교 식별자를 먼저 남긴다 — 첫 파일이 실패해도 클로드코드가 폴더를 알아볼 수 있게.
+  await vaultMeta(s, y);
+  const already = await vaultDone(s.nm, y);   // 이미 저장소에 있는 항목
+
+  let done = 0; const failed = [];
+  for (let i = 0; i < boxes.length; i++) {
+    const act = boxes[i].dataset.act, year = boxes[i].dataset.year;
+    const key = pickKey(act, year), name = pickLabel(act, year);
+    btn.textContent = `받는 중… ${i + 1}/${boxes.length}`;
+    fstat(`${esc(name)} 가져오는 중입니다… (${i + 1}/${boxes.length})`);
+    pickRow(key, act === 'achieve' ? '숫자 확인 중…' : '받는 중…', '');
+    try {
+      // 저장소에 이미 있으면 사이트에 다시 붙지 않는다(학업성취는 숫자 확인창도 건너뛴다)
+      if (already.has(key)) {
+        pickRow(key, '저장됨', 'ok done');
+        histTouch(s, y, name);
+        done++;
+        continue;
+      }
+      if (act === 'achieve') {
+        // 이 항목만 사람이 숫자를 읽어야 한다 — 창이 닫힐 때까지 여기서 기다린다.
+        await grabAchieveYear(year);
+      } else if (act === 'advance') {
+        // 학교알리미가 아니라 미리 훑어 둔 KESS 색인에서 만든다 — 서버를 거치지 않는다.
+        await grabAdvance();
+      } else if (act === 'evalplan') {
+        // 첨부가 여러 개다(초등은 학년별로 쪼개져 있다) — 목록을 먼저 받고 하나씩 내린다.
+        await grabEvalplan(name);
+      } else {
+        /* 연도별로 따로 공시되는 항목(move · paps)은 그 행의 연도로 부른다.
+           저장소 폴더는 화면에서 고른 공시연도(y) 하나로 유지한다 — 3개년을
+           연도마다 다른 폴더에 흩어 놓으면 리포트가 한자리에서 못 읽는다. */
+        const ask = year || y;
+        const url = `/api/gongsi?act=${act}&uuid=${encodeURIComponent(s.uuid)}`
+                  + `&name=${encodeURIComponent(s.nm)}&year=${ask}`;
+        await takeFile(await fetch(url), `${act}_${s.nm}_${ask}`,
+                       { nm: s.nm, year: y, kind: 'raw', act, label: name });
+      }
+      pickRow(key, '받음', 'ok');
+      histTouch(s, y, name);                  // 무엇을 받았는지까지 기록에 남긴다
+      done++;
+    } catch (e) {
+      pickRow(key, e.message, 'bad');
+      failed.push(name);
+    }
+  }
+
+  btn.disabled = false; btn.textContent = label;
+  const where = `<a href="vault.html">저장소</a>에 들어갔습니다.`;
+  if (!failed.length) fstat(`<b class="ok">${done}건 모두 받았습니다.</b> ${where}`);
+  else if (done)      fstat(`<b class="ok">${done}건 받았습니다.</b> ${where} 못 받은 항목: ${esc(failed.join(', '))} — 사유는 오른쪽에 있습니다.`);
+  else                fstat(`<b class="bad">받지 못했습니다.</b> 사유는 각 항목 오른쪽에 있습니다.`);
+  renderStore();
+  renderReportBar();                          // 자료가 모였으면 리포트 카드를 띄운다
+  renderFileGrid();                           // 새로 받은 파일이 카드로 바로 뜬다
+}
+
+/* 전체 선택 체크박스 ↔ 개별 체크박스 동기화 */
+function syncPickAll(){
+  const boxes = [...document.querySelectorAll('.pick input[data-act]')];
+  const on = boxes.filter(b => b.checked).length;
+  const all = $('#pickAll');
+  all.checked = on === boxes.length;
+  all.indeterminate = on > 0 && on < boxes.length;
+}
+
+/* ── 교과별 교수·학습 및 평가계획 ──
+   이 항목만 첨부가 여러 개다. 초등은 학년별로 파일이 쪼개져 있어(대치초 = 1~6학년 6개
+   + 학업성적관리규정 1개) 몇 개인지 미리 알 수 없다. 목록을 먼저 받고 하나씩 내린다.
+
+   파일 이름은 학교가 올린 원본을 그대로 쓴다 — '2026학년도 5학년 1학기 교과평가계획'
+   처럼 이름이 곧 몇 학년 것인지를 말해 준다. 여기서 뭉개면 리포트를 만들 때 알아볼 수 없다.
+   규정은 act=rule 이 따로 받으므로 여기서는 건너뛴다(같은 파일을 두 번 넣지 않는다). */
+async function grabEvalplan(name){
+  const s = picked, y = $('#year').value;
+  const base = `/api/gongsi?act=evalplan&uuid=${encodeURIComponent(s.uuid)}`
+             + `&name=${encodeURIComponent(s.nm)}&year=${y}`;
+  const j = await (await fetch(base)).json();
+  if (!j.ok) throw new Error(j.error || '목록을 받지 못했습니다.');
+
+  const isRule = t => /학업\s*성적\s*관리\s*규정|성적관리규정|학업성적관리규칙/.test(String(t));
+  const wanted = j.files.filter(f => !isRule(f.title));
+  if (!wanted.length) throw new Error('평가계획 첨부가 없습니다(규정만 붙어 있습니다).');
+
+  let ok = 0; const bad = [];
+  for (const f of wanted) {
+    try {
+      await takeFile(await fetch(`${base}&idx=${f.idx}`), `평가계획_${s.nm}_${y}.${f.ext}`,
+                     { nm: s.nm, year: y, kind: 'raw', act: 'evalplan', label: name });
+      ok++;
+    } catch (e) { bad.push(f.title.split('.')[0]); }
+  }
+  if (!ok) throw new Error(`첨부 ${wanted.length}개를 모두 받지 못했습니다.`);
+  if (bad.length) throw new Error(`${ok}개 받음 · ${bad.length}개 실패`);
+}
+
+/* ── 교과별 학업성취 ──
+   학교알리미가 이 항목에만 숫자 확인을 두고 있다. 일괄 받기 중간에 창을 띄우고
+   사용자가 풀 때까지 기다려야 하므로, 확인창을 약속(Promise)으로 감쌌다. */
+let capSession = null, capYear = null;
+/** 확인창이 닫힐 때까지 기다리기 위한 resolve 핸들 — 일괄 받기가 여기서 멈춘다. */
+let capResolve = null;
+
+function closeCaptcha(result){
+  $('#capModal').hidden = true;
+  const done = capResolve;
+  capResolve = null;
+  if (done) done(result);
+}
+
+/** 확인창을 띄우고 사용자가 풀거나 취소할 때까지 기다린다. */
+function askCaptcha({ image, session, year }){
+  capSession = session; capYear = year;
+  $('#capTitle').textContent = `교과별 학업성취 사항 · ${year}년 공시`;
+  $('#capImg').src = image;
+  $('#capInput').value = ''; $('#capMsg').textContent = '';
+  $('#capModal').hidden = false;
+  $('#capInput').focus();
+  return new Promise(resolve => { capResolve = resolve; });
+}
+
+/** 학업성취 1개년 — 확인 절차가 있으면 창을 띄우고 끝날 때까지 기다린다. */
+async function grabAchieveYear(year){
+  const s = picked;
+  const url = `/api/gongsi?act=achieve-start&uuid=${encodeURIComponent(s.uuid)}`
+            + `&name=${encodeURIComponent(s.nm)}&year=${year}`;
+  const j = await (await fetch(url)).json();
+  if (!j.ok) throw new Error(j.error || '열지 못했습니다.');
+  if (j.solved) {                                     // 드물게 확인 없이 바로 열리는 경우
+    const bin = Uint8Array.from(atob(j.file), c => c.charCodeAt(0));
+    await keep(new Blob([bin], { type: 'application/vnd.ms-excel' }), j.filename,
+               { nm: s.nm, year: $('#year').value, kind: 'raw', act: 'achieve',
+                 label: `교과별 학업성취 사항 ${year}년` });
+    return;
+  }
+  const r = await askCaptcha({ image: j.image, session: j.session, year });
+  if (!r.ok) throw new Error(r.reason || '건너뜀');
+}
+
+$('#capOk').onclick = async () => {
+  const answer = $('#capInput').value.trim();
+  if (!/^\d+$/.test(answer)) { $('#capMsg').textContent = '숫자만 입력해 주세요.'; return; }
+  $('#capOk').disabled = true; $('#capMsg').textContent = '확인 중…';
+  try {
+    const res = await fetch('/api/gongsi?act=achieve-solve', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session: capSession, answer }),
+    });
+    if ((res.headers.get('content-type') || '').includes('application/json')) {
+      const j = await res.json();
+      if (j.retry) {                                  // 값이 다르면 새 화면으로 한 번 더
+        capSession = j.session;
+        $('#capImg').src = j.image;
+        $('#capInput').value = ''; $('#capInput').focus();
+        $('#capMsg').textContent = j.error;
+        return;
+      }
+      throw new Error(j.error || '받지 못했습니다.');
+    }
+    await keep(await res.blob(), nameFrom(res, `교과별학업성취사항_${picked.nm}_${capYear}.xls`),
+               { nm: picked.nm, year: $('#year').value, kind: 'raw', act: 'achieve',
+                 label: `교과별 학업성취 사항 ${capYear}년` });
+    closeCaptcha({ ok: true });
+  } catch (e) {
+    $('#capMsg').textContent = e.message;
+  } finally {
+    $('#capOk').disabled = false;
+  }
+};
+$('#capCancel').onclick = () => closeCaptcha({ ok: false, reason: '건너뜀' });
+$('#capInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('#capOk').click(); });
+$('#capModal').addEventListener('mousedown', e => { if (e.target.id === 'capModal') closeCaptcha({ ok: false, reason: '건너뜀' }); });
+
+$('#grabAll').onclick = grabPicked;
+$('#pickAll').addEventListener('change', e => {
+  document.querySelectorAll('.pick input[data-act]').forEach(b => { b.checked = e.target.checked; });
+  syncPickAll();
+});
+/* 개별 체크박스는 showFiles() 가 목록을 그린 뒤 거기서 묶는다 —
+   학교급을 알아야 행을 그릴 수 있어서 이 시점엔 아직 하나도 없다. */
+
+/* ───────── 표 만들기 ─────────
+   원본 필드는 카드 안에 펼치지 않는다 — 35~76개짜리가 섞여 있어 카드 높이가 제멋대로가 되고,
+   2열 배치가 무너진다. 헤더 오른쪽 버튼으로 빼서 다이얼로그에서 본다. */
+const RAWS = new Map();          // 카드 제목 → 원본 응답 객체
+const NOTES = new Map();         // 카드 제목 → 읽는 법 안내
+
+function group(title, rows, note, raw){
+  const body = rows.filter(Boolean)
+    .map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('');
+  if (raw) RAWS.set(title, raw);
+  if (note) NOTES.set(title, note);
+  return `<section class="grp">
+    <header>
+      <h3>${title}</h3>
+      <span class="sp"></span>
+      ${note ? `<button type="button" class="infobtn" data-note="${esc(title)}"
+                 aria-label="${esc(title)} 읽는 법" title="이 표를 읽을 때 주의할 점">?</button>` : ''}
+      ${raw ? `<button type="button" class="rawbtn" data-raw="${esc(title)}"
+                 title="공시 원본 응답을 그대로 봅니다">원본 ${Object.keys(raw).length}개</button>` : ''}
+    </header>
+    <table>${body}</table>
+  </section>`;
+}
+
+/* 원본 다이얼로그 — 카드 어디를 눌렀는지는 위임으로 받는다 */
+function openDlg(title, sub, html){
+  $('#rawTitle').textContent = title;
+  $('#rawCnt').textContent = sub;
+  $('#rawBody').innerHTML = html;
+  $('#rawDlg').showModal();
+}
+$('#result').addEventListener('click', e => {
+  const raws = e.target.closest('.rawbtn'), info = e.target.closest('.infobtn');
+  if (raws) {
+    const title = raws.dataset.raw, raw = RAWS.get(title);
+    if (!raw) return;
+    const entries = Object.entries(raw);
+    openDlg(title, `원본 필드 ${entries.length}개`, `<table>${
+      entries.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>`);
+  } else if (info) {
+    const title = info.dataset.note, note = NOTES.get(title);
+    if (!note) return;
+    openDlg(title, '이 표를 읽을 때', `<div class="notebody">${note}</div>`);
+  }
+});
+$('#rawClose').onclick = () => $('#rawDlg').close();
+// 바깥을 누르면 닫힌다 — dialog 는 배경도 자기 자신이 target 이 된다
+$('#rawDlg').addEventListener('click', e => { if (e.target.id === 'rawDlg') $('#rawDlg').close(); });
+
+function render(d, missing){
+  const b = d.base, s = d.stdnt, e = d.enter, m = d.move, t = d.teach, a = d.after, c = d.club;
+  const total = s ? num(s.COL_S_SUM) : null;
+  const teachers = t ? num(t.COL_S) : null;
+  lastRows = [];
+
+  const push = (sec, k, v) => { lastRows.push([sec, k, v]); return [k, v]; };
+
+  /* 학년별 표 (초6/중3/고3 자동). 7번 칸은 학년이 아니라 특수학급 —
+     학교 현황(62) 의 SP_SUM·SP_FGR_SUM 과 값이 일치하는 것으로 확인했다. */
+  const gLabel = i => i <= 6 ? `${i}학년` : (i === 7 ? '특수학급' : '기타 학급');
+  const grades = [];
+  if (s) for (let i = 1; i <= 8; i++) {
+    const cnt = num(s['COL_S' + i]);
+    if (cnt) grades.push({ g: i, stdnt: cnt, cls: num(s['COL_C' + i]), per: num(s['COL_' + i]) });
+  }
+  const gradeRows = grades.map(g =>
+    push('학생·학급', gLabel(g.g), `${fmt(g.stdnt)}명 · ${fmt(g.cls)}학급 · 학급당 ${fmt(g.per)}명`));
+
+  /* 전·출입 학년별 칸 이름은 학교급마다 접두사가 다르다 —
+       초 COL_2{학년}{1전입|2전출} · 중 COL_3… · 고 COL_4…
+     'COL_4' 로 박아 두면 초·중은 학년별 줄이 통째로 비어 버린다(실제로 비어 있었다).
+     학교종류코드(02·03·04)의 뒷자리가 그대로 접두사라 그 값을 쓴다. */
+  const moveRows = [];
+  const mp = 'COL_' + (String((picked && picked.kind) || '04').slice(-1));
+  if (m) for (let i = 1; i <= 8; i++) {
+    const inn = num(m[`${mp}${i}1`]), out = num(m[`${mp}${i}2`]);
+    if (inn || out) moveRows.push(push('전·출입', `${i}학년 전입/전출`, `${fmt(inn)}명 / ${fmt(out)}명`));
+  }
+
+  const html = [
+    b && group('학교 기본정보', [
+      push('기본', '학교명', b.SCHUL_NM),
+      push('기본', '설립 구분', [b.FOND_SC_CODE, b.COEDU_SC_CODE && (b.COEDU_SC_CODE + '학교'), b.HS_KND_SC_NM, b.SCHUL_FOND_TYP_CODE].filter(Boolean).join(' · ')),
+      push('기본', '주소', `${b.SCHUL_RDNMA || ''} ${b.SCHUL_RDNDA || ''}`.trim()),
+      push('기본', '개교일', ymd(b.FOND_YMD)),
+      push('기본', '전화', b.USER_TELNO),
+      push('기본', '홈페이지', b.HMPG_ADRES),
+      push('기본', '관할 교육청', b.ATPT_OFCDC_ORG_NM),
+      push('기본', '표준학교코드', b.SCHUL_CODE),
+    ], null, b),
+
+    s && group('학생 · 학급', [
+      push('학생·학급', '총 재학생', fmt(total) + '명'),
+      push('학생·학급', '총 학급수', fmt(num(s.COL_C_SUM)) + '학급'),
+      push('학생·학급', '학급당 학생수', fmt(num(s.COL_SUM)) + '명'),
+      ...gradeRows,
+      push('학생·학급', '교원 1인당 학생수', fmt(num(s.TEACH_CAL)) + '명'),
+    ], null, s),
+
+    t && group('교원 현황', [
+      push('교원', '총 교원수', fmt(teachers) + '명'),
+      push('교원', '남 / 여', `${fmt(num(t.COL_SM))}명 / ${fmt(num(t.COL_SW))}명`),
+      push('교원', '기간제 교원', fmt(num(t.COL_R_SUM)) + '명'),
+      push('교원', '학생 대비 교원', (total && teachers) ? `교원 1인당 ${(total / teachers).toFixed(1)}명` : '—'),
+    ], null, t),
+
+    /* 입학생 — 초등은 서식이 통째로 다르다. 중·고는 '어디서 졸업하고 왔나'(당해연도 졸업자·
+       검정고시…)를 묻지만, 초등은 학구 배정이라 그 질문이 없고 대신 '제 나이에 들어왔나'
+       (적령·조기입학·유예)를 묻는다. 컬럼 이름도 겹치지 않아서, 중·고 서식을 초등에 그대로
+       들이대면 카드가 전부 '—' 로 뜬다(실제로 그렇게 비어 있었다). */
+    e && (picked && String(picked.kind) === '02'
+      ? group('입학생 (신입생)', [
+          push('입학생', '입학생 수', fmt(num(e.TOT_SUM)) + '명'),
+          push('입학생', '남 / 여', `${fmt(num(e.TOTAL_1))}명 / ${fmt(num(e.TOTAL_2))}명`),
+          push('입학생', '적령 아동', `${fmt(num(e.SUBEAGE_BOY_FGR))}명 (${fmt(num(e.SUBEAGE_BOY_FGR_R))}%)`),
+          push('입학생', '조기 입학', `${fmt(num(e.SUELPD_ETRC_BOY_FGR))}명 (${fmt(num(e.SUELPD_ETRC_BOY_FGR_R))}%)`),
+          push('입학생', '유예·과령', `${fmt(num(e.SUHEST_AWA_LTAGE_BOY_FGR))}명 (${fmt(num(e.SUHEST_AWA_LTAGE_BOY_FGR_R))}%)`),
+        ], null, e)
+      : group('입학생 (신입생)', [
+          push('입학생', '입학생 수', fmt(num(e.ALL_SUM)) + '명'),
+          push('입학생', '남 / 여', `${fmt(num(e.MAN_TOT))}명 / ${fmt(num(e.WOMAN_TOT))}명`),
+          push('입학생', '당해연도 졸업자', `${fmt(num(e.PRTI_GRDTN_BOYST_FGR) + num(e.PRTI_GRDTN_FES_FGR))}명 (${fmt(num(e.YEAR_GRAD_RATE))}%)`),
+          push('입학생', '전년도 이전 졸업자', `${fmt(num(e.BFR_YR_GRDTN_BOYST_FGR) + num(e.BFR_YR_GRDTN_FES_FGR))}명 (${fmt(num(e.LAST_YEAR_GRAD_RATE))}%)`),
+          push('입학생', '검정고시 등', `${fmt(num(e.SQE_COMPT_BOYST_FGR) + num(e.SQE_COMPT_FES_FGR))}명 (${fmt(num(e.TGMG_QT_QULF_TEST_ST_RATE))}%)`),
+        ], null, e)),
+
+    m && group('전·출입', [
+      push('전·출입', '전입', fmt(num(m.MVIN_SUM)) + '명'),
+      push('전·출입', '전출', fmt(num(m.MVT_SUM)) + '명'),
+      push('전·출입', '순전입', (() => { const v = num(m.MVIN_SUM) - num(m.MVT_SUM); return (v > 0 ? '+' : '') + fmt(v) + '명'; })()),
+      ...moveRows,
+      push('전·출입', '기준 학생수', fmt(num(m.STDNT_SUM)) + '명'),
+    ], '이 항목의 기준 학생수는 ‘학생·학급’ 항목의 재학생 수와 집계 시점이 달라 다를 수 있습니다.', m),
+
+    a && group('방과후학교', [
+      push('방과후', '프로그램 수', fmt(num(a.SUM_ASL_PGM_FGR)) + '개'),
+      push('방과후', '참여 학생수', fmt(num(a.ASL_PTPT_STDNT_FGR)) + '명'),
+      push('방과후', '참여율', pct(num(a.ASL_PTPT_STDNT_FGR), total)),
+      push('방과후', '수강 등록 학생수', fmt(num(a.SUM_ASL_REG_STDNT_FGR)) + '명'),
+      push('방과후', '수익자 부담 총액', won(a.ASL_BNFR_BRDN_AMT)),
+    ], '참여율은 방과후 참여 학생수 ÷ 총 재학생으로 이 화면에서 계산한 값입니다(공시 원값 아님).', a),
+
+    c && group('동아리 활동', [
+      push('동아리', '창의적체험활동 동아리 수', fmt(num(c.CREAT_EXPER_ACT_CCCLU_FGR)) + '개'),
+      push('동아리', '참여 학생수', fmt(num(c.CREAT_EXPER_ACT_STDNT_FGR)) + '명'),
+      push('동아리', '지도 교원수', fmt(num(c.CREAT_EXPER_ACT_CCH_TCR_FGR)) + '명'),
+      push('동아리', '학생 자율동아리 수', fmt(num(c.STDNT_SLCTL_CCCLU_FGR)) + '개'),
+      push('동아리', '동아리 예산', won(c.CREAT_EXPER_ACT_BDG_SPORT_AMT)),
+    ], '동아리 <b>부서명 목록</b>은 공시 항목에 없습니다(개수·인원만 제공). 부서명은 학교 제공 자료가 필요합니다.', c),
+  ].filter(Boolean).join('');
+
+  $('#result').innerHTML = html + (missing.length
+    ? `<div class="card"><h2>이 학교에 없는 항목</h2><div class="status">${missing.join(' · ')}
+       <br>해당 연도에 공시되지 않았거나 학교급이 달라 제공되지 않는 항목입니다. 공시연도를 낮춰 다시 시도해 보세요.</div></div>`
+    : '');
+  $('#resultBar').style.display = 'flex';
+}
+
+/* ───────── 복사 ───────── */
+function copy(text, btn){
+  const done = () => {
+    $('#copyStatus').textContent = '복사했습니다.';
+    if (btn) { const o = btn.textContent; btn.textContent = '복사됨'; setTimeout(() => btn.textContent = o, 1200); }
+    setTimeout(() => $('#copyStatus').textContent = '', 2000);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done, () => fallback(text, done));
+  } else fallback(text, done);
+}
+function fallback(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch { alert('복사에 실패했습니다. 표를 직접 선택해 복사하세요.'); }
+  document.body.removeChild(ta);
+}
+/* 버튼 하나로 전부 복사 — 탭 구분이라 엑셀·한글 표에 그대로 붙는다. */
+$('#copyAll').onclick = () => {
+  const head = `${picked?.nm || ''} · ${$('#year').value}년 · 출처 학교알리미 공시`;
+  const body = ['구분\t항목\t값', ...lastRows.map(r => r.join('\t'))].join('\n');
+  copy(head + '\n' + body, $('#copyAll'));
+};
+</script>
+</body>
+</html>
