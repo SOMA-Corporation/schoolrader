@@ -967,16 +967,26 @@ function reportPaint(st){
   go.hidden = running;
   stop.hidden = !running;
   go.disabled = false;
-  go.textContent = st.status === 'done' ? '다시 만들기' : '리포트 만들기';
+  /* 실패 뒤 버튼은 '다시'가 아니라 '이어서'다 — .scratch 에 작업물이 남아 있어
+     프롬프트가 그걸 먼저 보고 남은 단계부터 간다. 처음부터 다시 돌지 않는다. */
+  go.textContent = st.status === 'done' ? '다시 만들기'
+                 : st.status === 'failed' ? '이어서 만들기'
+                 : '리포트 만들기';
 
   const pdf = (st.report && st.report.pdf) || null;
   open.hidden = !pdf;
   if (pdf && picked) open.href = `/vault/${encodeURIComponent(vaultId(picked.nm, $('#year').value))}/${pdf.split('/').map(encodeURIComponent).join('/')}`;
 
+  /* 네트워크로 끊기면 서버가 같은 세션에 이어붙여 다시 돌린다. 그동안 화면이
+     아무 말도 안 하면 멈춘 것처럼 보이므로 몇 번째 시도인지 그대로 보여 준다. */
+  const n = st.attempt || 0;
+  const again = n > 1 ? ` <span class="g">(끊겨서 이어서 시도 중 ${n - 1}/${st.retryMax || 3})</span>` : '';
+
   state.innerHTML =
-      running          ? '만드는 중… 몇 분 걸립니다. 이 창을 닫아도 계속됩니다.'
+      running          ? `만드는 중… 몇 분 걸립니다. 이 창을 닫아도 계속됩니다.${again}`
     : st.status === 'done'   ? '<b class="ok">완료</b> — 저장소의 out/ 에 있습니다.'
     : st.status === 'failed' ? `<b class="bad">실패</b> — ${esc((st.report && st.report.error) || '진행 기록을 보세요.')}`
+                               + ' <span class="g">「이어서 만들기」를 누르면 남은 단계부터 갑니다.</span>'
     : '저장소에 모인 자료로 만듭니다.';
 
   if (st.log) {

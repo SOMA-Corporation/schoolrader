@@ -12,7 +12,7 @@
   },
   "year": "2026",
   "created": "2026-09-08T04:37:49.741Z",
-  "updated": "2026-09-08T11:20:52.093Z",
+  "updated": "2026-09-09T07:54:39.869Z",
   "files": {
     "raw/동아리활동현황_휘문고등학교_2026.xls": {
       "act": "club",
@@ -51,12 +51,8 @@
       "at": "2026-09-08T11:20:52.093Z"
     }
   },
+  "collectedAt": "2026-09-08T11:20:52.064Z",
   "report": {
-    "status": "none",
-    "startedAt": null,
-    "pdf": null,
-    "error": null,
-    "endedAt": null
-  },
-  "collectedAt": "2026-09-08T11:20:52.064Z"
+    "status": "none"
+  }
 }
